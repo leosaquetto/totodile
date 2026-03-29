@@ -21,11 +21,5 @@ jobs:
             --head copilot/fix-router-tarefas-real \
             --base bootstrap-totodile \
             --title "fix: conectar router ao callback real de tarefas" \
-            --body "$(cat <<'BODY'
-a pr #12 criou `app/callbacks/tarefas_callback.py`
-
-faltava apenas ligar `app/callbacks/router_stub.py` ao callback real
-
-esta pr remove o último uso do stub antigo no fluxo `tarefa_*`
-BODY
-)" || echo "PR already exists or creation failed"
+            --body "a pr #12 criou app/callbacks/tarefas_callback.py. faltava apenas ligar app/callbacks/router_stub.py ao callback real. esta pr remove o ultimo uso do stub antigo no fluxo tarefa_*" \
+            || echo "PR already exists"
