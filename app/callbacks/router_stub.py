@@ -1,5 +1,6 @@
 from app.callbacks import remedios_callback
 from app.callbacks import tarefas_callback
+from app.callbacks import academia_callback
 
 
 def dispatch(callback):
@@ -10,5 +11,8 @@ def dispatch(callback):
 
     if data.startswith("tarefa_"):
         return tarefas_callback.handle(callback)
+
+    if data.startswith("academia_"):
+        return academia_callback.handle(callback)
 
     return {"ok": False, "reason": "unhandled_callback", "data": data}
