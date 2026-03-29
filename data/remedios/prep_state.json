@@ -1,0 +1,10 @@
+{
+  "nome": "prep",
+  "dose_por_dia": 1,
+  "capsulas_por_pote": 30,
+  "estoque_atual": 64,
+  "estoque_alerta": 30,
+  "horario_padrao": "09:00",
+  "ultimo_registro": null,
+  "status_hoje": "pendente"
+}
