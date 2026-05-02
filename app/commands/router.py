@@ -22,7 +22,11 @@ def _normalize_command(text):
 
 
 def dispatch_command(text):
-    command = _normalize_command(text)
+    raw_text = str(text or "").strip()
+    if not raw_text.startswith("/"):
+        return {"ok": False, "reason": "ignored_non_command"}
+
+    command = _normalize_command(raw_text)
     handler = COMMANDS.get(command)
     if not handler:
         agenda_commands.send_help()
