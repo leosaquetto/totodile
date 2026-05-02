@@ -241,7 +241,19 @@ def _load_state():
     state = _load_json(STATE_PATH, {"sent": {}})
     if not isinstance(state, dict):
         state = {"sent": {}}
+
     state.setdefault("sent", {})
+    state.setdefault("read", {})
+    state.setdefault("snoozed", {})
+    state.setdefault("last_daily_summary", None)
+
+    if not isinstance(state.get("sent"), dict):
+        state["sent"] = {}
+    if not isinstance(state.get("read"), dict):
+        state["read"] = {}
+    if not isinstance(state.get("snoozed"), dict):
+        state["snoozed"] = {}
+
     return state
 
 
@@ -254,14 +266,35 @@ def _mark_sent(state, key, reference):
 
 
 def _prune_state(state, reference):
-    cutoff = reference - timedelta(days=14)
+    sent_cutoff = reference - timedelta(days=14)
+    aux_cutoff = reference - timedelta(days=30)
+
     sent = state.get("sent", {})
-    kept = {}
+    kept_sent = {}
     for key, value in sent.items():
         dt = _parse_date(value)
-        if dt and dt >= cutoff:
-            kept[key] = value
-    state["sent"] = kept
+        if dt and dt >= sent_cutoff:
+            kept_sent[key] = value
+    state["sent"] = kept_sent
+
+    read = state.get("read", {})
+    kept_read = {}
+    for key, value in read.items():
+        dt = _parse_date(value)
+        if dt and dt >= aux_cutoff:
+            kept_read[key] = value
+    state["read"] = kept_read
+
+    snoozed = state.get("snoozed", {})
+    kept_snoozed = {}
+    for key, value in snoozed.items():
+        if isinstance(value, dict):
+            dt = _parse_date(value.get("requested_at") or value.get("at"))
+        else:
+            dt = _parse_date(value)
+        if dt and dt >= aux_cutoff:
+            kept_snoozed[key] = value
+    state["snoozed"] = kept_snoozed
 
 
 def _birthday_line(item):
@@ -367,6 +400,7 @@ def send_due_reminders():
         sent_count += 1
 
     if sent_count:
+        state["last_daily_summary"] = reference.isoformat()
         _save_json(STATE_PATH, state, "🤖 registrar resumo diário enviado")
 
     return {"ok": True, "sent": sent_count}
