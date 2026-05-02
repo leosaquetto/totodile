@@ -2,7 +2,8 @@ name: totodile-bot
 
 on:
   schedule:
-    - cron: "*/30 * * * *"
+    # 10:00 UTC = 07:00 em Brasília
+    - cron: "0 10 * * *"
   workflow_dispatch:
 
 permissions:
