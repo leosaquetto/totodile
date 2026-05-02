@@ -54,6 +54,65 @@ def send_help():
         "/aniversarios_hoje\n"
         "/aniversarios_semana\n"
         "/rotina\n"
-        "/ajuda"
+        "/ajuda\n"
+        "/status\n"
+        "/debug_agenda\n"
+        "/debug_aniversarios"
     )
     return send_message(GROUP_ID, text, thread_id=THREADS["general"])
+
+
+def _next_event_line():
+    now = lembretes._now()
+    events = lembretes._events_between(now, 30)
+    if not events:
+        return "nenhum próximo evento"
+    item = events[0]
+    return f"{item['date']:%d/%m %H:%M} — {item['title']}"
+
+
+def _next_birthday_line():
+    now = lembretes._now()
+    birthdays = lembretes._birthdays_between(now, 30)
+    if not birthdays:
+        return "nenhum próximo aniversário"
+    item = birthdays[0]
+    return f"{item['date']:%d/%m} — {item['title']}"
+
+
+def send_status():
+    now = lembretes._now()
+    state = lembretes._load_state()
+    events = lembretes._events_between(now, 30)
+    birthdays = lembretes._birthdays_between(now, 30)
+
+    text = (
+        "🩺 status do bot\n\n"
+        f"último resumo diário: {state.get('last_daily_summary') or 'não registrado'}\n"
+        f"eventos carregados (30 dias): {len(events)}\n"
+        f"aniversários carregados (30 dias): {len(birthdays)}\n"
+        f"read: {len(state.get('read', {}))} | snoozed: {len(state.get('snoozed', {}))}"
+    )
+    return send_message(GROUP_ID, text, thread_id=THREADS["general"])
+
+
+def send_debug_agenda():
+    now = lembretes._now()
+    events = lembretes._events_between(now, 30)
+    text = (
+        "🐞 debug agenda\n\n"
+        f"eventos carregados (30 dias): {len(events)}\n"
+        f"próximo evento: {_next_event_line()}"
+    )
+    return send_message(GROUP_ID, text, thread_id=THREADS["agenda"])
+
+
+def send_debug_aniversarios():
+    now = lembretes._now()
+    birthdays = lembretes._birthdays_between(now, 30)
+    text = (
+        "🐞 debug aniversários\n\n"
+        f"aniversários carregados (30 dias): {len(birthdays)}\n"
+        f"próximo aniversário: {_next_birthday_line()}"
+    )
+    return send_message(GROUP_ID, text, thread_id=THREADS["aniversarios"])

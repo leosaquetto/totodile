@@ -10,6 +10,9 @@ COMMANDS = {
     "/aniversarios_semana": agenda_commands.send_aniversarios_semana,
     "/rotina": agenda_commands.send_rotina_panel,
     "/ajuda": agenda_commands.send_help,
+    "/status": agenda_commands.send_status,
+    "/debug_agenda": agenda_commands.send_debug_agenda,
+    "/debug_aniversarios": agenda_commands.send_debug_aniversarios,
 }
 
 
