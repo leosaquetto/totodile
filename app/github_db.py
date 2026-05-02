@@ -5,15 +5,19 @@ from app.config import GITHUB_REPO, BRANCH
 
 API = f"https://api.github.com/repos/{GITHUB_REPO}/contents"
 
+
 def read_json(path, token):
     url = f"{API}/{path}?ref={BRANCH}"
     headers = {"Authorization": f"token {token}"}
+
     r = requests.get(url, headers=headers, timeout=30)
     if r.status_code != 200:
         return None
+
     data = r.json()
     content = base64.b64decode(data["content"]).decode("utf-8")
     return json.loads(content) if content else {}
+
 
 def write_json(path, content, token, message="update json"):
     url = f"{API}/{path}"
