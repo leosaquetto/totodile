@@ -333,14 +333,36 @@ def send_due_reminders():
     birthday_text = render_daily_birthdays(reference)
     birthday_key = f"daily_birthdays:{day_key}"
     if birthday_text and not _already_sent(state, birthday_key):
-        send_message(GROUP_ID, birthday_text, thread_id=THREADS["aniversarios"])
+        send_message(
+            GROUP_ID,
+            birthday_text,
+            thread_id=THREADS["aniversarios"],
+            reply_markup={
+                "inline_keyboard": [[
+                    {"text": "✅ li aniversários", "callback_data": "aniversarios_lidos"},
+                    {"text": "🎈 ver semana", "callback_data": "aniversarios_semana"}
+                ]]
+            }
+        )
         _mark_sent(state, birthday_key, reference)
         sent_count += 1
 
     events_text = render_daily_events(reference)
     events_key = f"daily_events:{day_key}"
     if events_text and not _already_sent(state, events_key):
-        send_message(GROUP_ID, events_text, thread_id=THREADS["agenda"])
+        send_message(
+            GROUP_ID,
+            events_text,
+            thread_id=THREADS["agenda"],
+            reply_markup={
+                "inline_keyboard": [[
+                    {"text": "✅ li agenda", "callback_data": "agenda_lida"},
+                    {"text": "📅 ver semana", "callback_data": "agenda_semana"}
+                ], [
+                    {"text": "🔁 lembrar depois", "callback_data": "agenda_lembrar_depois"}
+                ]]
+            }
+        )
         _mark_sent(state, events_key, reference)
         sent_count += 1
 
