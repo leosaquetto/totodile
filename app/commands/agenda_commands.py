@@ -5,21 +5,19 @@ from app.telegram_api import send_message
 
 
 def send_agenda_hoje():
-    text = lembretes.render_daily_events() or "🗓️ agenda de hoje\n\nnenhum compromisso para hoje."
-    return send_message(GROUP_ID, text, thread_id=THREADS["agenda"])
+    return lembretes.send_daily_events()
 
 
 def send_agenda_semana():
-    return send_message(GROUP_ID, lembretes.render_week_events(), thread_id=THREADS["agenda"])
+    return lembretes.send_week_events()
 
 
 def send_aniversarios_hoje():
-    text = lembretes.render_daily_birthdays() or "🎈 aniversários de hoje\n\nnenhum aniversário para hoje."
-    return send_message(GROUP_ID, text, thread_id=THREADS["aniversarios"])
+    return lembretes.send_daily_birthdays()
 
 
 def send_aniversarios_semana():
-    return send_message(GROUP_ID, lembretes.render_week_birthdays(), thread_id=THREADS["aniversarios"])
+    return lembretes.send_week_birthdays()
 
 
 def send_rotina_panel():

@@ -347,6 +347,27 @@ def render_week_events(reference=None):
     return "\n".join(lines)
 
 
+
+
+def send_daily_birthdays(reference=None, thread_id=None, reply_markup=None, show_empty=True):
+    reference = reference or _now()
+    text = render_daily_birthdays(reference)
+    if not text:
+        if not show_empty:
+            return None
+        text = "🎈 aniversários de hoje\n\nnenhum aniversário para hoje."
+    return send_message(GROUP_ID, text, thread_id=thread_id or THREADS["aniversarios"], reply_markup=reply_markup)
+
+
+def send_daily_events(reference=None, thread_id=None, reply_markup=None, show_empty=True):
+    reference = reference or _now()
+    text = render_daily_events(reference)
+    if not text:
+        if not show_empty:
+            return None
+        text = "🗓️ agenda de hoje\n\nnenhum compromisso para hoje."
+    return send_message(GROUP_ID, text, thread_id=thread_id or THREADS["agenda"], reply_markup=reply_markup)
+
 def send_week_birthdays():
     return send_message(GROUP_ID, render_week_birthdays(), thread_id=THREADS["aniversarios"])
 
@@ -366,16 +387,16 @@ def send_due_reminders():
     birthday_text = render_daily_birthdays(reference)
     birthday_key = f"daily_birthdays:{day_key}"
     if birthday_text and not _already_sent(state, birthday_key):
-        send_message(
-            GROUP_ID,
-            birthday_text,
+        send_daily_birthdays(
+            reference=reference,
             thread_id=THREADS["aniversarios"],
             reply_markup={
                 "inline_keyboard": [[
                     {"text": "✅ li aniversários", "callback_data": "aniversarios_lidos"},
                     {"text": "🎈 ver semana", "callback_data": "aniversarios_semana"}
                 ]]
-            }
+            },
+            show_empty=False
         )
         _mark_sent(state, birthday_key, reference)
         sent_count += 1
@@ -383,9 +404,8 @@ def send_due_reminders():
     events_text = render_daily_events(reference)
     events_key = f"daily_events:{day_key}"
     if events_text and not _already_sent(state, events_key):
-        send_message(
-            GROUP_ID,
-            events_text,
+        send_daily_events(
+            reference=reference,
             thread_id=THREADS["agenda"],
             reply_markup={
                 "inline_keyboard": [[
@@ -394,7 +414,8 @@ def send_due_reminders():
                 ], [
                     {"text": "🔁 lembrar depois", "callback_data": "agenda_lembrar_depois"}
                 ]]
-            }
+            },
+            show_empty=False
         )
         _mark_sent(state, events_key, reference)
         sent_count += 1
