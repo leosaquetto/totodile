@@ -56,10 +56,15 @@ def handle(callback):
         return {"ok": True, "type": "rotina_em_breve", "data": data}
 
     if data == "agenda_lembrar_depois":
+        now = datetime.now().astimezone()
+        day_key = now.date().isoformat()
         state = lembretes._load_state()
-        state.setdefault("snoozed", {})[f"agenda:{datetime.now().date().isoformat()}"] = datetime.now().astimezone().isoformat()
+        state.setdefault("snoozed", {})[f"snooze_agenda:{day_key}"] = {
+            "requested_at": now.isoformat(),
+            "day": day_key
+        }
         lembretes._save_json(lembretes.STATE_PATH, state, "🤖 registrar snooze da agenda")
         answer_callback_query(callback_id, "vou lembrar depois")
-        return {"ok": True, "type": "agenda_snooze"}
+        return {"ok": True, "type": "agenda_snooze", "day": day_key}
 
     return {"ok": False, "reason": "unhandled_agenda_callback", "data": data}
