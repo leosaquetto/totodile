@@ -23,15 +23,25 @@ def send_aniversarios_semana():
 
 
 def send_rotina_panel():
-    text = (
-        "🐊 rotina\n\n"
-        "• agenda: /agenda | /agenda_semana\n"
-        "• aniversários: /aniversarios | /aniversarios_semana\n"
-        "• tarefas: em breve\n"
-        "• remédios: em breve\n"
-        "• academia: em breve"
-    )
-    return send_message(GROUP_ID, text, thread_id=THREADS["general"])
+    text = "🐊 rotina\n\nuse os botões para acessar os módulos:"
+    reply_markup = {
+        "inline_keyboard": [
+            [
+                {"text": "🗓️ agenda hoje", "callback_data": "agenda_hoje"},
+                {"text": "📅 agenda semana", "callback_data": "agenda_semana"}
+            ],
+            [
+                {"text": "🎈 aniversários hoje", "callback_data": "aniversarios_hoje"},
+                {"text": "🎈 aniversários semana", "callback_data": "aniversarios_semana"}
+            ],
+            [
+                {"text": "🏠 tarefas", "callback_data": "rotina_tarefas_painel"},
+                {"text": "💊 remédios", "callback_data": "rotina_remedios_painel"},
+                {"text": "🏋️ academia", "callback_data": "rotina_academia_painel"}
+            ]
+        ]
+    }
+    return send_message(GROUP_ID, text, thread_id=THREADS["general"], reply_markup=reply_markup)
 
 
 def send_help():

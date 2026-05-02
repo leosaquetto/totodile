@@ -29,6 +29,18 @@ def handle(callback):
         answer_callback_query(callback_id, "aniversários marcados como lidos")
         return {"ok": True, "type": "aniversarios_read"}
 
+    if data == "agenda_hoje":
+        text = lembretes.render_daily_events() or "🗓️ agenda de hoje\n\nnenhum compromisso para hoje."
+        send_message(GROUP_ID, text, thread_id=THREADS["agenda"])
+        answer_callback_query(callback_id)
+        return {"ok": True, "type": "agenda_today"}
+
+    if data == "aniversarios_hoje":
+        text = lembretes.render_daily_birthdays() or "🎈 aniversários de hoje\n\nnenhum aniversário para hoje."
+        send_message(GROUP_ID, text, thread_id=THREADS["aniversarios"])
+        answer_callback_query(callback_id)
+        return {"ok": True, "type": "aniversarios_today"}
+
     if data == "agenda_semana":
         send_message(GROUP_ID, lembretes.render_week_events(), thread_id=THREADS["agenda"])
         answer_callback_query(callback_id)
@@ -38,6 +50,10 @@ def handle(callback):
         send_message(GROUP_ID, lembretes.render_week_birthdays(), thread_id=THREADS["aniversarios"])
         answer_callback_query(callback_id)
         return {"ok": True, "type": "aniversarios_week"}
+
+    if data in {"rotina_tarefas_painel", "rotina_remedios_painel", "rotina_academia_painel"}:
+        answer_callback_query(callback_id, "painel em breve")
+        return {"ok": True, "type": "rotina_em_breve", "data": data}
 
     if data == "agenda_lembrar_depois":
         state = lembretes._load_state()
