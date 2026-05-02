@@ -2,7 +2,7 @@ import os
 import json
 from pathlib import Path
 
-from app.modules import remedios, tarefas_domesticas, academia
+from app.modules import remedios, tarefas_domesticas, academia, lembretes
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -36,6 +36,7 @@ def run():
         "ultimo_treino": "ontem"
     })
 
+    lembretes.send_due_reminders()
     remedios.send_prep(prep_state)
     tarefas_domesticas.send_panel(tarefas_state)
     academia.send_academia(academia_state)
