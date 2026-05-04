@@ -24,7 +24,10 @@ def send_message(chat_id, text, thread_id=None, reply_markup=None):
         payload["reply_markup"] = reply_markup
 
     r = requests.post(f"{BASE}/sendMessage", json=payload, timeout=30)
-    r.raise_for_status()
+    if not r.ok:
+        raise RuntimeError(
+            f"Telegram sendMessage failed: {r.status_code} {r.text} payload={payload}"
+        )
     return r.json()
 
 
@@ -41,5 +44,8 @@ def edit_message(chat_id, message_id, text, reply_markup=None):
         payload["reply_markup"] = reply_markup
 
     r = requests.post(f"{BASE}/editMessageText", json=payload, timeout=30)
-    r.raise_for_status()
+    if not r.ok:
+        raise RuntimeError(
+            f"Telegram editMessageText failed: {r.status_code} {r.text} payload={payload}"
+        )
     return r.json()

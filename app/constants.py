@@ -1,5 +1,5 @@
 THREADS = {
-    "general": 1,
+    "general": None,
     "agenda": 3,
     "aniversarios": 4,
     "academia": 5,
