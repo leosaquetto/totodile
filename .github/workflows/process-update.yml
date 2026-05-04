@@ -9,7 +9,7 @@ on:
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   run:
@@ -28,4 +28,9 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: process update
-        run: echo '${{ inputs.update_json }}' | python app/process_update.py
+        env:
+          TOKEN_TOTODILE: ${{ secrets.TOKEN_TOTODILE }}
+          ID_CENTRAL_TOTODILE: ${{ secrets.ID_CENTRAL_TOTODILE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPDATE_JSON: ${{ inputs.update_json }}
+        run: printf '%s' "$UPDATE_JSON" | python app/process_update.py
