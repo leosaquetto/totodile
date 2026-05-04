@@ -2,6 +2,7 @@ import json
 import os
 import unicodedata
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from app.config import GROUP_ID
@@ -19,9 +20,11 @@ BIRTHDAY_CALENDARS = {"aniversários", "birthdays"}
 BIRTHDAY_LOOKAHEAD_DAYS = int(os.getenv("TOTODILE_BIRTHDAY_LOOKAHEAD_DAYS", "1"))
 WEEK_LOOKAHEAD_DAYS = int(os.getenv("TOTODILE_WEEK_LOOKAHEAD_DAYS", "7"))
 
+TZ = ZoneInfo("America/Sao_Paulo")
+
 
 def _now():
-    return datetime.now().astimezone()
+    return datetime.now(TZ)
 
 
 def _load_local_json(path, fallback):
@@ -69,7 +72,7 @@ def _parse_date(value):
         return None
     if isinstance(value, (int, float)):
         try:
-            return datetime.fromtimestamp(value / 1000 if value > 10_000_000_000 else value).astimezone()
+            return datetime.fromtimestamp(value / 1000 if value > 10_000_000_000 else value, tz=TZ).astimezone(TZ)
         except Exception:
             return None
 
@@ -79,13 +82,13 @@ def _parse_date(value):
 
     iso = text.replace("Z", "+00:00")
     try:
-        return datetime.fromisoformat(iso).astimezone()
+        return datetime.fromisoformat(iso).astimezone(TZ)
     except Exception:
         pass
 
     for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d/%m/%y", "%d-%m-%Y", "%d-%m-%y"):
         try:
-            return datetime.strptime(text[:10], fmt).replace(tzinfo=_now().tzinfo)
+            return datetime.strptime(text[:10], fmt).replace(tzinfo=TZ)
         except Exception:
             continue
     return None

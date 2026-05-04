@@ -1,0 +1,31 @@
+name: process-update
+
+on:
+  workflow_dispatch:
+    inputs:
+      update_json:
+        description: "JSON de update do Telegram"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: install deps
+        run: pip install -r requirements.txt
+
+      - name: process update
+        run: echo '${{ inputs.update_json }}' | python app/process_update.py
