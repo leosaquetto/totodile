@@ -13,6 +13,7 @@ COMMANDS = {
     "/status": agenda_commands.send_status,
     "/debug_agenda": agenda_commands.send_debug_agenda,
     "/debug_aniversarios": agenda_commands.send_debug_aniversarios,
+    "/health": agenda_commands.send_health,
 }
 
 

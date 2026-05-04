@@ -1,4 +1,4 @@
-from app.config import GROUP_ID
+from app.config import GROUP_ID, BOT_TOKEN
 from app.constants import THREADS
 from app.modules import lembretes
 from app.telegram_api import send_message
@@ -55,7 +55,8 @@ def send_help():
         "/ajuda\n"
         "/status\n"
         "/debug_agenda\n"
-        "/debug_aniversarios"
+        "/debug_aniversarios\n"
+        "/health"
     )
     return send_message(GROUP_ID, text, thread_id=THREADS["general"])
 
@@ -114,3 +115,18 @@ def send_debug_aniversarios():
         f"próximo aniversário: {_next_birthday_line()}"
     )
     return send_message(GROUP_ID, text, thread_id=THREADS["aniversarios"])
+
+
+def send_health():
+    now = lembretes._now()
+    state = lembretes._load_state()
+    text = (
+        "🧪 health\n\n"
+        f"token: {'ok' if BOT_TOKEN else 'ausente'}\n"
+        f"group_id: {'ok' if GROUP_ID else 'ausente'}\n"
+        f"state.sent: {len(state.get('sent', {}))}\n"
+        f"state.read: {len(state.get('read', {}))}\n"
+        f"state.snoozed: {len(state.get('snoozed', {}))}\n"
+        f"agora: {now.isoformat()}"
+    )
+    return send_message(GROUP_ID, text, thread_id=THREADS["general"])
