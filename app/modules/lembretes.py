@@ -376,6 +376,28 @@ def send_week_events():
     return send_message(GROUP_ID, render_week_events(), thread_id=THREADS["agenda"])
 
 
+
+
+def send_snoozed_agenda_reminders(reference=None):
+    reference = reference or _now()
+    state = _load_state()
+    _prune_state(state, reference)
+
+    day_key = reference.date().isoformat()
+    snooze_key = f"snooze_agenda:{day_key}"
+    sent_key = f"snooze_sent_agenda:{day_key}"
+
+    if not state.get("snoozed", {}).get(snooze_key):
+        return {"ok": True, "sent": 0, "reason": "no_snooze_for_today"}
+
+    if _already_sent(state, sent_key):
+        return {"ok": True, "sent": 0, "reason": "already_sent_today"}
+
+    send_daily_events(reference=reference, thread_id=THREADS["agenda"], show_empty=False)
+    _mark_sent(state, sent_key, reference)
+    _save_json(STATE_PATH, state, "🤖 enviar lembrete posterior da agenda")
+    return {"ok": True, "sent": 1, "reason": "snooze_sent"}
+
 def send_due_reminders():
     reference = _now()
     state = _load_state()

@@ -1,0 +1,32 @@
+name: totodile-snooze
+
+on:
+  workflow_dispatch:
+  schedule:
+    # de 08:00 a 19:00 BRT (11:00 a 22:00 UTC), de hora em hora
+    - cron: "0 11-22 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: install deps
+        run: pip install -r requirements.txt
+
+      - name: run snooze
+        env:
+          TOKEN_TOTODILE: ${{ secrets.TOKEN_TOTODILE }}
+          ID_CENTRAL_TOTODILE: ${{ secrets.ID_CENTRAL_TOTODILE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python app/snooze.py
