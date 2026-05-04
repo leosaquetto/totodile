@@ -1,10 +1,10 @@
 // Exporta aniversários e eventos do calendário para JSON no GitHub.
 // Salve um token no Keychain do Scriptable com a chave: totodile_github_token
-// Parâmetro opcional do widget/atalho: {"branch":"bootstrap-totodile"}
+// Parâmetro opcional do widget/atalho: {"branch":"main"}
 
 const REPO_OWNER = "leosaquetto"
 const REPO_NAME = "totodile"
-const DEFAULT_BRANCH = "bootstrap-totodile"
+const DEFAULT_BRANCH = "main"
 const TOKEN_KEY = "totodile_github_token"
 
 const EVENTOS_PATH = "data/agenda/eventos.json"
@@ -122,6 +122,25 @@ function toBirthdayPayload(event) {
   }
 }
 
+
+function exportTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "unknown"
+  } catch (error) {
+    return "unknown"
+  }
+}
+
+function buildExportEnvelope(items) {
+  return {
+    exportedAt: new Date().toISOString(),
+    source: "scriptable",
+    count: items.length,
+    timezone: exportTimezone(),
+    branch: BRANCH,
+    items
+  }
+}
 async function putGithubJson(path, payload, token) {
   const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}`
 
@@ -175,10 +194,16 @@ async function main() {
     .sort((a, b) => a.startDate - b.startDate)
     .map(toEventPayload)
 
-  await putGithubJson(ANIVERSARIOS_PATH, aniversarios, token)
-  await putGithubJson(EVENTOS_PATH, eventos, token)
+  const aniversariosPayload = buildExportEnvelope(aniversarios)
+  const eventosPayload = buildExportEnvelope(eventos)
 
-  console.log(`Exportados ${aniversarios.length} aniversários e ${eventos.length} eventos para ${BRANCH}.`)
+  await putGithubJson(ANIVERSARIOS_PATH, aniversariosPayload, token)
+  await putGithubJson(EVENTOS_PATH, eventosPayload, token)
+
+  console.log(`Aniversários exportados: ${aniversarios.length}`)
+  console.log(`Eventos exportados: ${eventos.length}`)
+  console.log(`Branch destino: ${BRANCH}`)
+  console.log(`Arquivos atualizados: ${ANIVERSARIOS_PATH}, ${EVENTOS_PATH}`)
 }
 
 await main()

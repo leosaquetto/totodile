@@ -241,7 +241,19 @@ def _load_state():
     state = _load_json(STATE_PATH, {"sent": {}})
     if not isinstance(state, dict):
         state = {"sent": {}}
+
     state.setdefault("sent", {})
+    state.setdefault("read", {})
+    state.setdefault("snoozed", {})
+    state.setdefault("last_daily_summary", None)
+
+    if not isinstance(state.get("sent"), dict):
+        state["sent"] = {}
+    if not isinstance(state.get("read"), dict):
+        state["read"] = {}
+    if not isinstance(state.get("snoozed"), dict):
+        state["snoozed"] = {}
+
     return state
 
 
@@ -254,14 +266,35 @@ def _mark_sent(state, key, reference):
 
 
 def _prune_state(state, reference):
-    cutoff = reference - timedelta(days=14)
+    sent_cutoff = reference - timedelta(days=14)
+    aux_cutoff = reference - timedelta(days=30)
+
     sent = state.get("sent", {})
-    kept = {}
+    kept_sent = {}
     for key, value in sent.items():
         dt = _parse_date(value)
-        if dt and dt >= cutoff:
-            kept[key] = value
-    state["sent"] = kept
+        if dt and dt >= sent_cutoff:
+            kept_sent[key] = value
+    state["sent"] = kept_sent
+
+    read = state.get("read", {})
+    kept_read = {}
+    for key, value in read.items():
+        dt = _parse_date(value)
+        if dt and dt >= aux_cutoff:
+            kept_read[key] = value
+    state["read"] = kept_read
+
+    snoozed = state.get("snoozed", {})
+    kept_snoozed = {}
+    for key, value in snoozed.items():
+        if isinstance(value, dict):
+            dt = _parse_date(value.get("requested_at") or value.get("at"))
+        else:
+            dt = _parse_date(value)
+        if dt and dt >= aux_cutoff:
+            kept_snoozed[key] = value
+    state["snoozed"] = kept_snoozed
 
 
 def _birthday_line(item):
@@ -314,6 +347,27 @@ def render_week_events(reference=None):
     return "\n".join(lines)
 
 
+
+
+def send_daily_birthdays(reference=None, thread_id=None, reply_markup=None, show_empty=True):
+    reference = reference or _now()
+    text = render_daily_birthdays(reference)
+    if not text:
+        if not show_empty:
+            return None
+        text = "🎈 aniversários de hoje\n\nnenhum aniversário para hoje."
+    return send_message(GROUP_ID, text, thread_id=thread_id or THREADS["aniversarios"], reply_markup=reply_markup)
+
+
+def send_daily_events(reference=None, thread_id=None, reply_markup=None, show_empty=True):
+    reference = reference or _now()
+    text = render_daily_events(reference)
+    if not text:
+        if not show_empty:
+            return None
+        text = "🗓️ agenda de hoje\n\nnenhum compromisso para hoje."
+    return send_message(GROUP_ID, text, thread_id=thread_id or THREADS["agenda"], reply_markup=reply_markup)
+
 def send_week_birthdays():
     return send_message(GROUP_ID, render_week_birthdays(), thread_id=THREADS["aniversarios"])
 
@@ -321,6 +375,28 @@ def send_week_birthdays():
 def send_week_events():
     return send_message(GROUP_ID, render_week_events(), thread_id=THREADS["agenda"])
 
+
+
+
+def send_snoozed_agenda_reminders(reference=None):
+    reference = reference or _now()
+    state = _load_state()
+    _prune_state(state, reference)
+
+    day_key = reference.date().isoformat()
+    snooze_key = f"snooze_agenda:{day_key}"
+    sent_key = f"snooze_sent_agenda:{day_key}"
+
+    if not state.get("snoozed", {}).get(snooze_key):
+        return {"ok": True, "sent": 0, "reason": "no_snooze_for_today"}
+
+    if _already_sent(state, sent_key):
+        return {"ok": True, "sent": 0, "reason": "already_sent_today"}
+
+    send_daily_events(reference=reference, thread_id=THREADS["agenda"], show_empty=False)
+    _mark_sent(state, sent_key, reference)
+    _save_json(STATE_PATH, state, "🤖 enviar lembrete posterior da agenda")
+    return {"ok": True, "sent": 1, "reason": "snooze_sent"}
 
 def send_due_reminders():
     reference = _now()
@@ -333,18 +409,41 @@ def send_due_reminders():
     birthday_text = render_daily_birthdays(reference)
     birthday_key = f"daily_birthdays:{day_key}"
     if birthday_text and not _already_sent(state, birthday_key):
-        send_message(GROUP_ID, birthday_text, thread_id=THREADS["aniversarios"])
+        send_daily_birthdays(
+            reference=reference,
+            thread_id=THREADS["aniversarios"],
+            reply_markup={
+                "inline_keyboard": [[
+                    {"text": "✅ li aniversários", "callback_data": "aniversarios_lidos"},
+                    {"text": "🎈 ver semana", "callback_data": "aniversarios_semana"}
+                ]]
+            },
+            show_empty=False
+        )
         _mark_sent(state, birthday_key, reference)
         sent_count += 1
 
     events_text = render_daily_events(reference)
     events_key = f"daily_events:{day_key}"
     if events_text and not _already_sent(state, events_key):
-        send_message(GROUP_ID, events_text, thread_id=THREADS["agenda"])
+        send_daily_events(
+            reference=reference,
+            thread_id=THREADS["agenda"],
+            reply_markup={
+                "inline_keyboard": [[
+                    {"text": "✅ li agenda", "callback_data": "agenda_lida"},
+                    {"text": "📅 ver semana", "callback_data": "agenda_semana"}
+                ], [
+                    {"text": "🔁 lembrar depois", "callback_data": "agenda_lembrar_depois"}
+                ]]
+            },
+            show_empty=False
+        )
         _mark_sent(state, events_key, reference)
         sent_count += 1
 
     if sent_count:
+        state["last_daily_summary"] = reference.isoformat()
         _save_json(STATE_PATH, state, "🤖 registrar resumo diário enviado")
 
     return {"ok": True, "sent": sent_count}

@@ -3,8 +3,17 @@ import json
 from pathlib import Path
 
 from app.modules import remedios, tarefas_domesticas, academia, lembretes
+from app.config import BOT_TOKEN, GROUP_ID
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def validate_runtime_config():
+    return {
+        "has_token": bool(BOT_TOKEN),
+        "has_group_id": bool(GROUP_ID),
+    }
+
 
 
 def load_json(relative_path, fallback):
@@ -18,6 +27,8 @@ def load_json(relative_path, fallback):
 
 
 def run():
+    cfg = validate_runtime_config()
+    print(f"[totodile] config has_token={cfg['has_token']} has_group_id={cfg['has_group_id']}")
     prep_state = load_json("data/remedios/prep_state.json", {
         "status_hoje": "pendente",
         "estoque_atual": 64

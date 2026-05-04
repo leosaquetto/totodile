@@ -1,6 +1,7 @@
 import os
 import json
-from app.telegram_api import answer_callback_query, edit_message
+from app.telegram_api import edit_message
+from app.telegram_api_callbacks import answer_callback_query
 from app.config import GROUP_ID
 
 STATE_FILE = "data/remedios/prep_state.json"
