@@ -1,7 +1,7 @@
 // Variables used by Scriptable.
 // These must be at the very top of the file. Do not edit.
 // icon-color: deep-gray; icon-glyph: code-branch;
-// scriptable: github workflows hub v7.2 - Colunas & Layout Nativo
+// scriptable: github workflows hub v7.3 - Colunas & Layout Nativo
 // Dashboard nativo, repos, workflows, deploys reais, Vercel e Widgets.
 
 const OWNER = "leosaquetto";
@@ -11,6 +11,7 @@ const GITHUB_AVATAR_URL = `https://github.com/${OWNER}.png`;
 const VERCEL_TEAM_ID = "team_A2ZopFCq3xyFHuJ6wjek1u7q";
 const VERCEL_TOKEN_KEY = "leosaquettoapp_vercel_token";
 const VERCEL_API_ROOT = "https://api.vercel.com";
+const WORKFLOW_DISPATCH_CACHE = {};
 const VERCEL_PROJECTS = {
   "codex-usage": "prj_MFf7UyyesYKdZVkiyLMfXa5acrfp",
   "leosaquettoapp": "prj_QBNBVrao0BwJ09eIeMMQRoMmifXU",
@@ -18,7 +19,7 @@ const VERCEL_PROJECTS = {
   "music-link-swapper": "prj_9NUF3qN5F1GEXqzA3oZBcnMkBJxK"
 };
 
-const CACHE_VERSION = "v7.2";
+const CACHE_VERSION = "v7.3";
 
 // 📦 CONFIGURAÇÃO DOS PROJETOS
 const REPOS = [
@@ -196,6 +197,19 @@ function writeJsonCache(name, data) {
   fm.writeString(cachePath(name), JSON.stringify(data));
 }
 
+function cacheUpdatedAgoLabel(name) {
+  const fm = FileManager.local();
+  const path = cachePath(name);
+  if (!fm.fileExists(path)) return "sem cache";
+  const updatedAt = fm.modificationDate(path);
+  return `atualizado ${formatRelativeDate(updatedAt)}`;
+}
+
+function formatProjectsCountLabel(count) {
+  const n = Number(count || 0);
+  return `${n} ${n === 1 ? "projeto" : "projetos"}`;
+}
+
 async function loadCachedImage(url, filename, maxAgeMinutes = 1440) {
   const fm = FileManager.local();
   const path = cachePath(filename);
@@ -227,7 +241,10 @@ async function githubRequest(url, method = "GET", body = null) {
   if (body) req.body = JSON.stringify(body);
   const response = await req.loadString();
   const status = req.response.statusCode;
-  if (status >= 300 && status !== 304) throw new Error(`API Erro ${status}\nURL: ${url}`);
+  if (status >= 300 && status !== 304) {
+    const detail = response ? `\nDetalhe: ${String(response).slice(0, 400)}` : "";
+    throw new Error(`API Erro ${status}\nMétodo: ${method}\nURL: ${url}${detail}`);
+  }
   return response ? parseJsonSafe(response) : null;
 }
 
@@ -351,7 +368,7 @@ function addSectionTitle(table, title) {
 function addSimpleActionRow(table, title, subtitle, onSelectCallback) {
   const row = new UITableRow();
   row.height = 48;
-  row.dismissOnTap = true;
+  row.dismissOnTap = Boolean(onSelectCallback);
   const cell = row.addText(title, subtitle || "");
   cell.titleFont = Font.semiboldSystemFont(14);
   cell.subtitleFont = Font.systemFont(11);
@@ -372,7 +389,8 @@ function addRunRow(table, item, compact = false, onSelectCallback) {
   c1.titleFont = Font.boldSystemFont(13);
   c1.widthWeight = 40;
 
-  const runInfo = `${run.head_branch || "N/A"} • ${formatRelativeDate(run.updated_at || run.created_at)}`;
+  const actor = run?.actor?.login || "github";
+  const runInfo = `${run.head_branch || "N/A"} • ${formatRelativeDate(run.updated_at || run.created_at)} • ${actor}`;
   const c2 = row.addText(`${icon} ${run.name || "workflow"}`, runInfo);
   c2.titleFont = Font.semiboldSystemFont(12);
   c2.subtitleFont = new Font("Menlo-Regular", 10);
@@ -417,9 +435,9 @@ function addDeployPanelRow(table, repo, deployInfo, onSelectCallback) {
   table.addRow(row);
 }
 
-function addVercelLinkRow(table, repo, item, onSelectCallback) {
+function addVercelLinkRow(table, repo, item, deployInfo, onSelectCallback) {
   const row = new UITableRow();
-  row.height = 50;
+  row.height = 56;
   row.dismissOnTap = true;
 
   const c1 = row.addText(`${repo.icon || "▲"} ${repo.name}`);
@@ -427,9 +445,17 @@ function addVercelLinkRow(table, repo, item, onSelectCallback) {
   c1.widthWeight = 40;
 
   const primaryUrl = getPrimaryVercelUrl(item);
-  const total = item?.urls?.length || 0;
-  const c2 = row.addText(shortUrlLabel(primaryUrl), total > 1 ? `+${total - 1} domínios` : "Link principal");
-  c2.titleFont = new Font("Menlo-Regular", 11);
+  const prod = deployInfo?.production || null;
+  const prev = deployInfo?.preview || null;
+  const deployLine = [
+    repo.showProductionDeploy !== false ? `prod ${deploymentIcon(prod)} ${deploymentDate(prod)}` : "",
+    repo.showPreviewDeploy !== false ? `stg ${deploymentIcon(prev)} ${deploymentDate(prev)}` : ""
+  ].filter(Boolean).join("  ");
+  const c2 = row.addText(
+    primaryUrl ? shortUrlLabel(primaryUrl) : "sem link",
+    deployLine || "sem deploy"
+  );
+  c2.titleFont = new Font("Menlo-Regular", 10);
   c2.subtitleFont = Font.systemFont(10);
   c2.subtitleColor = Color.gray();
   c2.widthWeight = 60;
@@ -461,6 +487,35 @@ async function fetchWorkflowRuns(repo, workflow, options = {}) {
 async function triggerWorkflow(repo, workflow, ref) {
   const wId = encodeURIComponent(workflow.id || workflow.path);
   await githubRequest(`${repoApi(repo)}/actions/workflows/${wId}/dispatches`, "POST", { ref });
+}
+
+async function workflowHasManualDispatch(repo, workflow, ref) {
+  if (!workflow?.path) return true;
+  const cacheKey = `${repo.owner || OWNER}/${repo.name}:${workflow.path}@${ref}`;
+  if (cacheKey in WORKFLOW_DISPATCH_CACHE) return WORKFLOW_DISPATCH_CACHE[cacheKey];
+  try {
+    const data = await githubRequest(`${repoApi(repo)}/contents/${encodeURIComponent(workflow.path)}?ref=${encodeURIComponent(ref)}`);
+    const content = typeof data?.content === "string" ? data.content : "";
+    if (!content) {
+      WORKFLOW_DISPATCH_CACHE[cacheKey] = true;
+      return true;
+    }
+    const normalizedContent = content.replace(/\n/g, "").replace(/-/g, "+").replace(/_/g, "/");
+    const decodedData = Data.fromBase64String(normalizedContent);
+    if (!decodedData) {
+      WORKFLOW_DISPATCH_CACHE[cacheKey] = true;
+      return true;
+    }
+    const decoded = decodedData.toRawString();
+    const hasDispatch = /(^|\n)\s*workflow_dispatch\s*:/m.test(decoded) ||
+      /\bon\s*:\s*\[[^\]]*\bworkflow_dispatch\b[^\]]*\]/m.test(decoded) ||
+      /\bon\s*:\s*\n(?:\s*-\s*[\w"'-]+\s*\n)*\s*-\s*["']?workflow_dispatch["']?\s*$/m.test(decoded);
+    WORKFLOW_DISPATCH_CACHE[cacheKey] = hasDispatch;
+    return hasDispatch;
+  } catch (e) {
+    WORKFLOW_DISPATCH_CACHE[cacheKey] = true;
+    return true;
+  }
 }
 
 async function fetchDeployments(repo, environment, perPage = 3) {
@@ -541,23 +596,98 @@ function normalizeVercelDeployment(repo, d) {
   };
 }
 
+function getVercelDeploymentBranch(d) {
+  return String(
+    d?.meta?.githubCommitRef ||
+    d?.meta?.githubCommitBranch ||
+    d?.gitSource?.ref ||
+    d?.gitSource?.branch ||
+    d?.source?.ref ||
+    d?.source?.branch ||
+    d?.branch ||
+    ""
+  ).replace(/^refs\/heads\//, "");
+}
+function getVercelDeploymentTarget(d) {
+  return String(
+    d?.target ||
+    d?.environment ||
+    d?.meta?.vercelTarget ||
+    ""
+  ).toLowerCase();
+}
+function getVercelDeploymentUrl(d) {
+  return String(d?.url || d?.alias?.[0] || "");
+}
+function isVercelProductionDeployment(repo, d) {
+  const target = getVercelDeploymentTarget(d);
+  const branch = getVercelDeploymentBranch(d);
+  return (
+    target === "production" ||
+    branch === repo.productionBranch
+  );
+}
+function isVercelPreviewDeployment(repo, d) {
+  const target = getVercelDeploymentTarget(d);
+  const branch = getVercelDeploymentBranch(d);
+  const url = getVercelDeploymentUrl(d).toLowerCase();
+  return (
+    target === "preview" ||
+    target === "staging" ||
+    branch === repo.previewBranch ||
+    url.includes("staging") ||
+    url.includes("preview")
+  );
+}
+
 async function fetchVercelDeploymentsByTarget(repo) {
-  const deployments = await fetchVercelDeployments(repo, 20);
-  const productionRaw = deployments.find(d => {
-    return String(d.target || "").toLowerCase() === "production";
+  const limit = repo.name === "codex-usage" ? 50 : 20;
+  const deployments = await fetchVercelDeployments(repo, limit);
+  const readyDeployments = deployments.filter(d => {
+    const state = String(d.readyState || d.state || "").toUpperCase();
+    return !state || ["READY", "BUILDING", "ERROR", "QUEUED"].includes(state);
   });
-  const previewRaw = deployments.find(d => {
-    const target = String(d.target || "").toLowerCase();
-    const branch = d.meta?.githubCommitRef || d.gitSource?.ref || "";
-    return (
-      target === "preview" ||
-      target === "staging" ||
-      branch === repo.previewBranch
-    );
+  const productionRaw = readyDeployments.find(d => {
+    return isVercelProductionDeployment(repo, d);
+  });
+  const previewRaw = readyDeployments.find(d => {
+    return isVercelPreviewDeployment(repo, d);
   });
   return {
     production: normalizeVercelDeployment(repo, productionRaw),
     preview: normalizeVercelDeployment(repo, previewRaw)
+  };
+}
+
+async function fetchLatestRunForBranch(repo, branch) {
+  if (!branch) return null;
+  const runs = await fetchWorkflowRuns(repo, "general", {
+    perPage: 1,
+    branch
+  });
+  return runs?.[0] || null;
+}
+function normalizeRunAsDeployment(repo, run, environment, url) {
+  if (!run) return null;
+  const state = run.status === "completed"
+    ? (run.conclusion === "success" ? "success" : run.conclusion || "unknown")
+    : run.status;
+  return {
+    source: "github-run",
+    environment,
+    state,
+    created_at: run.created_at,
+    updated_at: run.updated_at,
+    url: url || "",
+    deployment: {
+      id: run.id,
+      ref: run.head_branch,
+      sha: run.head_sha || ""
+    },
+    status: {
+      state
+    },
+    raw: run
   };
 }
 
@@ -591,6 +721,17 @@ async function fetchDashboardData(options = {}) {
           if (!previewDeploy && repo.showPreviewDeploy !== false && vercelDeploys.preview) {
             previewDeploy = vercelDeploys.preview;
           }
+        } catch (e) {}
+      }
+      if (!previewDeploy && repo.showPreviewDeploy !== false && repo.previewBranch && repo.previewBranch !== repo.productionBranch) {
+        try {
+          const branchRun = await fetchLatestRunForBranch(repo, repo.previewBranch);
+          previewDeploy = normalizeRunAsDeployment(
+            repo,
+            branchRun,
+            repo.stagingEnvironment || repo.previewEnvironment || "staging",
+            repo.previewUrl
+          );
         } catch (e) {}
       }
       
@@ -641,7 +782,7 @@ async function fetchDashboardDataCached(force = false) {
     const cached = readJsonCache(cacheName, 90); 
     if (cached) return hydrateDashboardData(cached);
   }
-  const fresh = await fetchDashboardData({ perRepoRuns: 3 }); 
+  const fresh = await fetchDashboardData({ perRepoRuns: 5 }); 
   writeJsonCache(cacheName, fresh);
   return fresh;
 }
@@ -652,7 +793,7 @@ async function fetchWidgetDataCached(force = false) {
     const cached = readJsonCache(cacheName, 900); 
     if (cached) return hydrateDashboardData(cached);
   }
-  const fresh = await fetchDashboardData({ perRepoRuns: 2 });
+  const fresh = await fetchDashboardData({ perRepoRuns: 3 });
   writeJsonCache(cacheName, fresh);
   return fresh;
 }
@@ -788,15 +929,23 @@ async function showDashboard() {
   addSectionTitle(table, "LINKS OFICIAIS VERCEL");
   const vCacheName = `vercel-official-links-${CACHE_VERSION}.json`;
   const cachedVercelLinks = readJsonCache(vCacheName, 3600);
+  const cacheMeta = `${cacheUpdatedAgoLabel(vCacheName)} • ${formatProjectsCountLabel(cachedVercelLinks?.length || 0)}`;
+  addSimpleActionRow(table, "🕒 Cache dos links Vercel", cacheMeta, null);
+  addSimpleActionRow(table, "🔄 Atualizar links oficiais Vercel", "Buscar domínios oficiais dos projetos", () => {
+    dashboardResult = { action: "REFRESH_VERCEL_LINKS" };
+  });
   if (!cachedVercelLinks) {
-    addSimpleActionRow(table, "▲ Carregar links oficiais Vercel", "Buscar domínios oficiais dos projetos", () => {
-      dashboardResult = { action: "REFRESH_VERCEL_LINKS" };
-    });
+    addSimpleActionRow(table, "▲ Nenhum link em cache", "Use atualizar para carregar os links", null);
   } else {
+    addSimpleActionRow(table, "📋 Copiar links Vercel (cache)", "Copiar todos os domínios oficiais", () => {
+      const urls = [...new Set(cachedVercelLinks.flatMap(item => item.urls || []))];
+      if (urls.length) Pasteboard.copy(urls.join("\n"));
+    });
     cachedVercelLinks.forEach(item => {
       const repo = REPOS.find(r => r.name === item.repoName);
       if (!repo) return;
-      addVercelLinkRow(table, repo, item, () => {
+      const deployGroup = dashboardData.deployGroups.find(g => g.repo.name === repo.name);
+      addVercelLinkRow(table, repo, item, deployGroup?.deploys || null, () => {
         dashboardResult = { action: "VERCEL_LINKS_PANEL", repo, item };
       });
     });
@@ -820,7 +969,19 @@ async function showDashboard() {
     emptyRow.addText("Nenhuma atividade recente.").titleColor = Color.gray();
     table.addRow(emptyRow);
   } else {
-    dashboardData.globalRuns.slice(0, 6).forEach(item => {
+    const activityPriority = (item) => {
+      const status = item?.run?.status;
+      const conclusion = item?.run?.conclusion;
+      if (status === "completed" && conclusion === "failure") return 0;
+      if (["queued", "in_progress", "requested", "waiting"].includes(status)) return 1;
+      return 2;
+    };
+    const prioritizedRuns = [...dashboardData.globalRuns].sort((a, b) => {
+      const p = activityPriority(a) - activityPriority(b);
+      if (p !== 0) return p;
+      return (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
+    prioritizedRuns.slice(0, 6).forEach(item => {
       addRunRow(table, item, false, () => {
         dashboardResult = { action: "RUN_DETAILS", repo: item.repo, run: item.run };
       });
@@ -979,9 +1140,19 @@ async function quickDeploy(repo, mode) {
   const workflows = await fetchWorkflows(repo);
   const activeWfs = workflows.filter(w => w.state === "active");
   const isTarget = mode === "preview" ? isPreviewWorkflow : isProductionWorkflow;
+  const ref = mode === "preview" ? repo.previewBranch || repo.defaultBranch || "main" : repo.productionBranch || repo.defaultBranch || "main";
 
   let candidates = activeWfs.filter(w => isDeployWorkflow(repo, w) && isTarget(w));
   if (!candidates.length) candidates = activeWfs.filter(w => isDeployWorkflow(repo, w));
+  if (candidates.length) {
+    const filtered = [];
+    for (const wf of candidates) {
+      if (await workflowHasManualDispatch(repo, wf, ref)) {
+        filtered.push(wf);
+      }
+    }
+    if (filtered.length) candidates = filtered;
+  }
   
   if (!candidates.length) {
     await showInfo("⚠️ Nenhum deploy", `Não encontrei workflow de deploy em ${repo.name}.`);
@@ -989,7 +1160,6 @@ async function quickDeploy(repo, mode) {
   }
 
   const workflow = candidates[0];
-  const ref = mode === "preview" ? repo.previewBranch || repo.defaultBranch || "main" : repo.productionBranch || repo.defaultBranch || "main";
 
   const confirm = await presentMenu(
     mode === "preview" ? "👀 Deploy Preview" : "🌍 Deploy Produção",
@@ -1002,12 +1172,40 @@ async function quickDeploy(repo, mode) {
     const wfOptions = candidates.map(w => ({ label: workflowLabel(w), value: w }));
     const chosen = await presentMenu("Escolher Workflow", repo.name, wfOptions);
     if (chosen === "BACK") return;
-    await triggerWorkflow(repo, chosen, ref);
-    await showInfo("✅ Acionado", `${chosen.name} iniciou em ${ref}.`);
+    try {
+      await triggerWorkflow(repo, chosen, ref);
+      await showInfo("✅ Acionado", `${chosen.name} iniciou em ${ref}.`);
+    } catch (e) {
+      const errMsg = String(e.message || e);
+      await showInfo("❌ Falha ao acionar", errMsg, [
+        { label: "📋 Copiar erro", handler: async () => Pasteboard.copy(errMsg) },
+        { label: "🌐 Abrir Actions", handler: async () => Safari.open(`${repoWeb(repo)}/actions`) }
+      ]);
+    }
     return;
   }
-  await triggerWorkflow(repo, workflow, ref);
-  await showInfo("✅ Acionado", `${workflow.name} iniciou em ${ref}.`);
+  let triggered = null;
+  let lastError = null;
+  for (const wf of candidates) {
+    try {
+      await triggerWorkflow(repo, wf, ref);
+      triggered = wf;
+      break;
+    } catch (e) {
+      lastError = e;
+      const msg = String(e.message || e);
+      if (!msg.includes("API Erro 422")) break;
+    }
+  }
+  if (!triggered) {
+    const errMsg = String(lastError?.message || "Nenhum workflow aceitou workflow_dispatch para esse ref.");
+    await showInfo("❌ Falha ao acionar", errMsg, [
+      { label: "📋 Copiar erro", handler: async () => Pasteboard.copy(errMsg) },
+      { label: "🌐 Abrir Actions", handler: async () => Safari.open(`${repoWeb(repo)}/actions`) }
+    ]);
+    return;
+  }
+  await showInfo("✅ Acionado", `${triggered.name} iniciou em ${ref}.`);
 }
 
 async function handleRunDetails(repo, run, targetUrl = null) {
@@ -1087,11 +1285,13 @@ async function runApp() {
           const opt = await presentMenu("Status Rápido", "Escolha a visão:", [
             { label: `🔴 Falhas Recentes (${result.failed.length})`, value: "FAILURES" },
             { label: `🟡 Em Andamento (${result.running.length})`, value: "RUNNING" },
-            { label: `🔄 Recarregar Dados da API`, value: "REFRESH" }
+            { label: `🔄 Recarregar Dados da API`, value: "REFRESH" },
+            { label: `▲ Atualizar links Vercel`, value: "REFRESH_VERCEL" }
           ]);
           if (opt === "FAILURES") { const r = await showFilteredRuns("Falhas Recentes", result.failed); if(r.action === "RUN_DETAILS") await handleRunDetails(r.repo, r.run); state = "DASHBOARD"; }
           else if (opt === "RUNNING") { const r = await showFilteredRuns("Em Andamento", result.running); if(r.action === "RUN_DETAILS") await handleRunDetails(r.repo, r.run); state = "DASHBOARD"; }
           else if (opt === "REFRESH") { await fetchDashboardDataCached(true); state = "DASHBOARD"; }
+          else if (opt === "REFRESH_VERCEL") { await fetchVercelLinksCached(true); state = "DASHBOARD"; }
           else state = "DASHBOARD";
         }
 
