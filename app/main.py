@@ -48,9 +48,11 @@ def run():
     })
 
     lembretes.send_due_reminders()
-    remedios.send_prep(prep_state)
-    tarefas_domesticas.send_panel(tarefas_state)
-    academia.send_academia(academia_state)
+    # Pausa temporária dos envios de rotina solicitados (academia, tarefas e saúde/remédios).
+    # Mantém os demais envios funcionando normalmente.
+    # remedios.send_prep(prep_state)
+    # tarefas_domesticas.send_panel(tarefas_state)
+    # academia.send_academia(academia_state)
 
 
 if __name__ == "__main__":
