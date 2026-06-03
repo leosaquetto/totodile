@@ -16,6 +16,8 @@ https://SEU-DOMINIO.vercel.app/api/telegram_webhook
 
 O endpoint é uma Python Function simples da Vercel, sem Flask/FastAPI.
 
+O estado em produção usa GitHub Contents API via `GITHUB_TOKEN`. Sem essa env, a função cai para arquivo local, o que só é adequado em desenvolvimento.
+
 ## Envs da Vercel
 
 Configure na Vercel:

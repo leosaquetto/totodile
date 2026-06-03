@@ -1,20 +1,16 @@
-import json
 import os
 import unicodedata
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
-from pathlib import Path
 
 from app.config import GROUP_ID
 from app.constants import THREADS
-from app.github_db import read_json, write_json
+from app.storage import load_json, save_json
 from app.telegram_api import send_message
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
 BIRTHDAYS_PATH = "data/aniversarios/aniversarios.json"
 EVENTS_PATH = "data/agenda/eventos.json"
 STATE_PATH = "data/lembretes/sent_state.json"
-TOKEN = os.getenv("GITHUB_TOKEN")
 
 BIRTHDAY_CALENDARS = {"aniversários", "birthdays"}
 BIRTHDAY_LOOKAHEAD_DAYS = int(os.getenv("TOTODILE_BIRTHDAY_LOOKAHEAD_DAYS", "1"))
@@ -27,32 +23,12 @@ def _now():
     return datetime.now(TZ)
 
 
-def _load_local_json(path, fallback):
-    full_path = BASE_DIR / path
-    if not full_path.exists():
-        return fallback
-    try:
-        return json.loads(full_path.read_text(encoding="utf-8"))
-    except Exception:
-        return fallback
-
-
 def _load_json(path, fallback):
-    if TOKEN:
-        data = read_json(path, TOKEN)
-        if data is not None:
-            return data
-    return _load_local_json(path, fallback)
+    return load_json(path, fallback)
 
 
 def _save_json(path, data, message):
-    if TOKEN:
-        return write_json(path, data, TOKEN, message=message)
-
-    full_path = BASE_DIR / path
-    full_path.parent.mkdir(parents=True, exist_ok=True)
-    full_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-    return {"ok": True, "local": True}
+    return save_json(path, data, message)
 
 
 def _items(data):

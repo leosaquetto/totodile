@@ -10,14 +10,18 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from app.hooks.main_hook_stub import handle_update
-
 LOGGER = logging.getLogger(__name__)
 MAX_BODY_BYTES = 1024 * 1024
 
 
 def _json_bytes(payload):
     return json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
+
+def _handle_update(update):
+    from app.hooks.main_hook import handle_update
+
+    return handle_update(update)
 
 
 class handler(BaseHTTPRequestHandler):
@@ -40,7 +44,7 @@ class handler(BaseHTTPRequestHandler):
             return
 
         try:
-            result = handle_update(payload)
+            result = _handle_update(payload)
         except Exception:
             LOGGER.exception("telegram_webhook internal_error update_id=%s", payload.get("update_id"))
             self._send_json(HTTPStatus.OK, {"ok": False, "error": "internal_error"})

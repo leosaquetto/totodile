@@ -33,4 +33,4 @@ jobs:
           ID_CENTRAL_TOTODILE: ${{ secrets.ID_CENTRAL_TOTODILE }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UPDATE_JSON: ${{ inputs.update_json }}
-        run: printf '%s' "$UPDATE_JSON" | python app/process_update.py
+        run: printf '%s' "$UPDATE_JSON" | python -m app.process_update

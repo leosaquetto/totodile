@@ -12,8 +12,8 @@ Não existe workflow recorrente de polling. Depois que o webhook estiver registr
 
 1. O Telegram envia `POST /api/telegram_webhook`.
 2. O endpoint valida JSON e, se configurado, o header `X-Telegram-Bot-Api-Secret-Token`.
-3. O endpoint chama `handle_update(update)` em `app/hooks/main_hook_stub.py`.
-4. O hook roteia `callback_query` para `app/callbacks/router_stub.py`.
+3. O endpoint chama `handle_update(update)` em `app/hooks/main_hook.py`.
+4. O hook roteia `callback_query` para `app/callbacks/router.py`.
 5. O hook roteia `message.text` e `edited_message.text` para `app/commands/router.py`.
 6. Mensagens sem comando são ignoradas com segurança.
 
@@ -41,7 +41,7 @@ Exemplo de JSON seguro para testar ignore de mensagem comum:
 Teste local equivalente:
 
 ```bash
-printf '%s' '{"update_id":1,"message":{"message_id":1,"text":"oi"}}' | python app/process_update.py
+printf '%s' '{"update_id":1,"message":{"message_id":1,"text":"oi"}}' | python -m app.process_update
 ```
 
 Para testar comando real, use um ambiente com `TOKEN_TOTODILE` e `ID_CENTRAL_TOTODILE`, porque o handler vai tentar responder no Telegram.

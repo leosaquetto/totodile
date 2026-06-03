@@ -1,4 +1,4 @@
-from app.callbacks.router_stub import dispatch
+from app.callbacks.router import dispatch
 from app.commands.router import dispatch_command
 
 

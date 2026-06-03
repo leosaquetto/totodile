@@ -1,57 +1,45 @@
-# Estado atual do Totodile (Fase 1 - auditoria)
+# Estado atual do Totodile
 
-Data da auditoria: 2026-05-02 (UTC)
+Última revisão: 2026-06-03.
 
-## Base de trabalho
-- Branch local atual: `work`.
-- Observação importante para as próximas PRs: como a `bootstrap-totodile` já foi mergeada, a base recomendada para novas branches é a `main` do repositório `leosaquetto/totodile`.
+## Runtime
 
-## Arquivos inspecionados
-- `app/main.py`
-- `app/modules/lembretes.py`
-- `app/callbacks/router_stub.py`
-- `app/hooks/main_hook_stub.py`
-- `app/telegram_api.py`
-- `app/telegram_api_callbacks.py`
-- `app/constants.py`
-- `.github/workflows/bot.yml`
-- `ios_scriptable/exportar_agenda_aniversarios.js`
+- `.github/workflows/bot.yml` executa `python -m app.main` diariamente às 07h de Brasília.
+- `.github/workflows/totodile-snooze.yml` roda de hora em hora entre 08h e 19h BRT para lembretes adiados.
+- `.github/workflows/process-update.yml` processa um update JSON manual para debug.
+- `api/telegram_webhook.py` recebe comandos e callbacks em tempo real pela Vercel.
 
-## Callbacks já existentes
-Pelo roteador atual (`app/callbacks/router_stub.py`), já existem estes prefixos tratados:
-- `prep_` → `app/callbacks/remedios_callback.py`
-- `tarefa_` → `app/callbacks/tarefas_callback.py`
-- `academia_` → `app/callbacks/academia_callback.py`
+## Entrada do Telegram
 
-Ainda não há roteamento para:
-- `agenda_`
-- `aniversarios_`
+- `app/hooks/main_hook.py` processa `message`, `edited_message` e `callback_query`.
+- `app/commands/router.py` roteia comandos.
+- `app/callbacks/router.py` roteia callbacks por prefixo:
+  - `agenda_`
+  - `aniversarios_`
+  - `rotina_`
+  - `prep_`
+  - `tarefa_`
+  - `academia_`
 
-## O bot hoje processa o quê?
-### Envio agendado
-Sim. O workflow `.github/workflows/bot.yml` executa `python -m app.main` diariamente em:
-- `0 10 * * *` (10:00 UTC, 07:00 em Brasília).
+Mensagens que não são comandos são ignoradas com segurança.
 
-No `app/main.py`, o fluxo atual chama:
-- `lembretes.send_due_reminders()`
-- `remedios.send_prep(...)`
-- `tarefas_domesticas.send_panel(...)`
-- `academia.send_academia(...)`
+## Estado
 
-### Callbacks do Telegram
-Parcialmente sim.
-- O `app/hooks/main_hook_stub.py` processa apenas `update.callback_query` e despacha para `router_stub.dispatch(...)`.
-- Ou seja, já existe suporte para callbacks (botões), mas somente para os prefixos hoje roteados.
+- `app/storage.py` centraliza leitura e escrita JSON.
+- Com `GITHUB_TOKEN`, o estado é lido/escrito via GitHub Contents API.
+- Sem `GITHUB_TOKEN`, o estado usa os arquivos locais em `data/`.
 
-### Mensagens de texto/comandos
-Não no hook atual.
-- O `main_hook_stub.py` não trata `message.text`.
-- Portanto, comandos como `/agenda` ou `/ajuda` ainda não são processados nesse ponto de entrada atual.
+Arquivos de dados principais:
 
-## Observações relevantes para próximas fases
-- `app/modules/lembretes.py` já possui funções de render semanal prontas:
-  - `render_week_birthdays`
-  - `render_week_events`
-  - e também `send_week_birthdays` / `send_week_events`.
-- `send_message(...)` em `app/telegram_api.py` já aceita `reply_markup`, facilitando incluir botões nos resumos diários.
-- O exportador `ios_scriptable/exportar_agenda_aniversarios.js` ainda está com branch padrão `bootstrap-totodile`, que deve ser revisada em PR futura dedicada para alinhar com `main`.
+- `data/agenda/eventos.json`
+- `data/aniversarios/aniversarios.json`
+- `data/lembretes/sent_state.json`
+- `data/remedios/prep_state.json`
+- `data/tarefas/habitos_modelo.json`
+- `data/academia/treino_state.json`
+
+## Deploy
+
+- A Vercel precisa das envs documentadas em `docs/deploy-vercel.md`.
+- O webhook real é `/api/telegram_webhook`.
+- Não há polling recorrente.

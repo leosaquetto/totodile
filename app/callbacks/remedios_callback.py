@@ -1,23 +1,27 @@
-import os
-import json
 from app.telegram_api import edit_message
 from app.telegram_api_callbacks import answer_callback_query
 from app.config import GROUP_ID
+from app.storage import load_json, save_json
+from app.modules import remedios
 
 STATE_FILE = "data/remedios/prep_state.json"
+DEFAULT_STATE = {
+    "status_hoje": "pendente",
+    "estoque_atual": 0,
+}
 
 
 def load_state():
-    if not os.path.exists(STATE_FILE):
-        return {}
-    with open(STATE_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    state = load_json(STATE_FILE, DEFAULT_STATE)
+    if not isinstance(state, dict):
+        state = dict(DEFAULT_STATE)
+    state.setdefault("status_hoje", "pendente")
+    state.setdefault("estoque_atual", 0)
+    return state
 
 
 def save_state(state):
-    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
+    return save_json(STATE_FILE, state, "🤖 atualizar remédios")
 
 
 def build_text(state):
@@ -26,6 +30,13 @@ def build_text(state):
         f"status: {state.get('status_hoje', 'pendente')}\n"
         f"estoque: {state.get('estoque_atual', 0)} cápsulas"
     )
+
+
+def _int_value(value, fallback=0):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return fallback
 
 
 def handle(callback):
@@ -40,18 +51,27 @@ def handle(callback):
 
     if data == "prep_ok":
         state["status_hoje"] = "tomado ✅"
-        state["estoque_atual"] = max(0, state.get("estoque_atual", 0) - 1)
+        state["estoque_atual"] = max(0, _int_value(state.get("estoque_atual")) - 1)
     elif data == "prep_no":
         state["status_hoje"] = "não tomado ❌"
     elif data == "prep_later":
         state["status_hoje"] = "adiado ⏰"
+    else:
+        answer_result = answer_callback_query(callback_id, "ação não reconhecida")
+        return {
+            "ok": False,
+            "reason": "unknown_remedio_action",
+            "answered": bool(answer_result and answer_result.get("ok")),
+        }
 
+    answer_result = answer_callback_query(callback_id, "registrado 💚")
     save_state(state)
     message_id = msg.get("message_id")
     edit_result = None
+    chat = msg.get("chat") if isinstance(msg.get("chat"), dict) else {}
+    chat_id = chat.get("id") or GROUP_ID
     if message_id:
-        edit_result = edit_message(GROUP_ID, message_id, build_text(state))
-    answer_result = answer_callback_query(callback_id, "registrado 💚")
+        edit_result = edit_message(chat_id, message_id, build_text(state), reply_markup=remedios.build_keyboard())
 
     return {
         "ok": True,

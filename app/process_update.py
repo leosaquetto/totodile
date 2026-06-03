@@ -6,7 +6,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from app.hooks.main_hook_stub import handle_update
+from app.hooks.main_hook import handle_update
 
 
 def main():

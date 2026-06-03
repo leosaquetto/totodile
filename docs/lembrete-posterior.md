@@ -1,4 +1,4 @@
-# Lembrete posterior (fase 5)
+# Lembrete posterior
 
 Estado atual do `agenda_lembrar_depois`:
 
@@ -21,8 +21,9 @@ Exemplo:
 }
 ```
 
-## Limitação atual
+## Execução posterior
 
-- Nesta fase, o clique **não cria novo agendamento automático**.
-- O workflow diário principal permanece inalterado.
-- A execução posterior (ex.: job horário dedicado de snooze) fica para PR futura.
+- O clique não cria um agendamento novo individual.
+- Ele marca o dia como adiado em `snoozed`.
+- O workflow `.github/workflows/totodile-snooze.yml` roda de hora em hora entre 08h e 19h BRT.
+- Quando há snooze pendente para o dia, `python -m app.snooze` reenfileira a agenda no tópico correto e marca `snooze_sent_agenda:YYYY-MM-DD`.

@@ -5,7 +5,6 @@ import requests
 from app.config import BOT_TOKEN
 
 TELEGRAM_API_BASE = "https://api.telegram.org"
-BASE = f"{TELEGRAM_API_BASE}/bot{BOT_TOKEN}" if BOT_TOKEN else ""
 
 
 def _truncate(value, limit=1200):
@@ -18,7 +17,7 @@ def _truncate(value, limit=1200):
 def _safe_payload(payload):
     if not isinstance(payload, dict):
         return payload
-    return {key: value for key, value in payload.items() if key != "token"}
+    return {key: value for key, value in payload.items() if key not in {"token"}}
 
 
 def _ensure_bot_token():
@@ -71,6 +70,9 @@ def _post(method, payload):
 
 
 def send_message(chat_id, text, thread_id=None, reply_markup=None, parse_mode=None):
+    if not chat_id:
+        raise RuntimeError("chat_id não configurado")
+
     payload = {
         "chat_id": chat_id,
         "text": "" if text is None else str(text),
@@ -89,6 +91,11 @@ def send_message(chat_id, text, thread_id=None, reply_markup=None, parse_mode=No
 
 
 def edit_message(chat_id, message_id, text, reply_markup=None, parse_mode=None):
+    if not chat_id:
+        raise RuntimeError("chat_id não configurado")
+    if not message_id:
+        raise RuntimeError("message_id não configurado")
+
     payload = {
         "chat_id": chat_id,
         "message_id": message_id,

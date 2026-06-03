@@ -20,3 +20,9 @@ jobs:
 
       - name: compile check
         run: python -m compileall app api scripts
+
+      - name: unit tests
+        run: python -m unittest discover -s tests
+
+      - name: process update smoke
+        run: printf '%s' '{"update_id":1,"message":{"message_id":1,"text":"oi"}}' | python -m app.process_update

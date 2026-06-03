@@ -13,9 +13,21 @@ streak: {state.get('streak',0)} dias
 """.strip()
 
 
+def build_keyboard():
+    return {
+        "inline_keyboard": [
+            [
+                {"text": "✅ fiz treino", "callback_data": "academia_done"},
+                {"text": "⏭️ pulei", "callback_data": "academia_skip"},
+            ]
+        ]
+    }
+
+
 def send_academia(state):
     return send_message(
         GROUP_ID,
         render_text(state),
-        thread_id=THREADS["academia"]
+        thread_id=THREADS["academia"],
+        reply_markup=build_keyboard(),
     )

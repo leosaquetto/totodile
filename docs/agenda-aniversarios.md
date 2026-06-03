@@ -23,7 +23,7 @@
 - `🎈 ver semana` → `aniversarios_semana`
 
 ## Callback routing
-- `app/callbacks/router_stub.py` roteia:
+- `app/callbacks/router.py` roteia:
   - `agenda_`
   - `aniversarios_`
   - `rotina_`
