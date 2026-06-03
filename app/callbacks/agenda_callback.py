@@ -14,8 +14,33 @@ def _mark_read_flag(state, key):
     state.setdefault("read", {})[key] = datetime.now().astimezone().isoformat()
 
 
+def _send_rotina_panel(data):
+    if data == "rotina_tarefas_painel":
+        from app.callbacks.tarefas_callback_real_stub import load_state
+        from app.modules import tarefas_domesticas
+
+        return tarefas_domesticas.send_panel(load_state())
+
+    if data == "rotina_remedios_painel":
+        from app.callbacks.remedios_callback import load_state
+        from app.modules import remedios
+
+        return remedios.send_prep(load_state())
+
+    if data == "rotina_academia_painel":
+        from app.callbacks.academia_callback import load_state
+        from app.modules import academia
+
+        return academia.send_academia(load_state())
+
+    return None
+
+
 def handle(callback):
-    data = callback.get("data", "")
+    if not isinstance(callback, dict):
+        return {"ok": False, "reason": "invalid_callback"}
+
+    data = str(callback.get("data") or "")
     callback_id = callback.get("id")
 
     if data == "agenda_lida":
@@ -53,8 +78,9 @@ def handle(callback):
         return {"ok": True, "type": "aniversarios_week"}
 
     if data in {"rotina_tarefas_painel", "rotina_remedios_painel", "rotina_academia_painel"}:
-        _answer_safe(callback_id, "painel em breve")
-        return {"ok": True, "type": "rotina_em_breve", "data": data}
+        result = _send_rotina_panel(data)
+        _answer_safe(callback_id, "painel aberto")
+        return {"ok": True, "type": "rotina_panel", "data": data, "result": result}
 
     if data == "agenda_lembrar_depois":
         now = datetime.now().astimezone()
@@ -68,4 +94,5 @@ def handle(callback):
         _answer_safe(callback_id, "vou lembrar depois")
         return {"ok": True, "type": "agenda_snooze", "day": day_key}
 
+    _answer_safe(callback_id, "ação não reconhecida")
     return {"ok": False, "reason": "unhandled_agenda_callback", "data": data}

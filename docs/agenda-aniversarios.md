@@ -6,7 +6,7 @@
 - `data/lembretes/sent_state.json`
 
 ## Fluxo diário
-- O workflow diário executa `python app/main.py`.
+- O workflow diário executa `python -m app.main`.
 - O módulo `app/modules/lembretes.py` chama `send_due_reminders()`.
 - O bot envia resumo diário para:
   - tópico `agenda`

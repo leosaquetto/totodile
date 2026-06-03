@@ -49,8 +49,12 @@ def build_text(state):
 
 
 def handle(callback):
-    data = callback["data"]
-    msg = callback["message"]
+    if not isinstance(callback, dict):
+        return {"ok": False, "reason": "invalid_callback"}
+
+    data = str(callback.get("data") or "")
+    msg = callback.get("message") if isinstance(callback.get("message"), dict) else {}
+    callback_id = callback.get("id")
 
     state = load_state()
     hoje = date.today().isoformat()
@@ -69,11 +73,16 @@ def handle(callback):
         feedback = "ação não reconhecida"
 
     save_state(state)
-    edit_message(GROUP_ID, msg["message_id"], build_text(state))
-    answer_callback_query(callback["id"], feedback)
+    message_id = msg.get("message_id")
+    edit_result = None
+    if message_id:
+        edit_result = edit_message(GROUP_ID, message_id, build_text(state))
+    answer_result = answer_callback_query(callback_id, feedback)
 
     return {
         "ok": True,
         "type": "academia_update",
+        "edited": bool(edit_result),
+        "answered": bool(answer_result and answer_result.get("ok")),
         "state": state
     }

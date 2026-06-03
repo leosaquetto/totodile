@@ -19,4 +19,4 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: compile check
-        run: python -m compileall app
+        run: python -m compileall app api scripts

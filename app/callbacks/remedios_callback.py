@@ -29,8 +29,12 @@ def build_text(state):
 
 
 def handle(callback):
-    data = callback["data"]
-    msg = callback["message"]
+    if not isinstance(callback, dict):
+        return {"ok": False, "reason": "invalid_callback"}
+
+    data = str(callback.get("data") or "")
+    msg = callback.get("message") if isinstance(callback.get("message"), dict) else {}
+    callback_id = callback.get("id")
 
     state = load_state()
 
@@ -43,5 +47,16 @@ def handle(callback):
         state["status_hoje"] = "adiado ⏰"
 
     save_state(state)
-    edit_message(GROUP_ID, msg["message_id"], build_text(state))
-    answer_callback_query(callback["id"], "registrado 💚")
+    message_id = msg.get("message_id")
+    edit_result = None
+    if message_id:
+        edit_result = edit_message(GROUP_ID, message_id, build_text(state))
+    answer_result = answer_callback_query(callback_id, "registrado 💚")
+
+    return {
+        "ok": True,
+        "type": "remedios_update",
+        "edited": bool(edit_result),
+        "answered": bool(answer_result and answer_result.get("ok")),
+        "state": state
+    }

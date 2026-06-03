@@ -1,30 +1,55 @@
 # Telegram updates no Totodile
 
-## Situação atual
+## Papéis dos runtimes
 
-- O workflow diário (`.github/workflows/bot.yml`) executa `python app/main.py` para envio de resumos e painéis.
-- Esse fluxo **não** recebe updates em tempo real do Telegram (sem webhook/polling ativo contínuo).
+- `.github/workflows/bot.yml`: envia o resumo diário às 07h de Brasília com `python -m app.main`.
+- `.github/workflows/process-update.yml`: processa manualmente um update JSON para debug.
+- Webhook Vercel: recebe comandos e botões em tempo real em `/api/telegram_webhook`.
 
-## Teste manual de comandos e callbacks
+Não existe workflow recorrente de polling. Depois que o webhook estiver registrado, o Telegram chama a Vercel automaticamente para comandos e callbacks.
 
-Foi adicionado o workflow manual `.github/workflows/process-update.yml` com `workflow_dispatch` e input `update_json`.
+## Fluxo do webhook
 
-Ele executa:
+1. O Telegram envia `POST /api/telegram_webhook`.
+2. O endpoint valida JSON e, se configurado, o header `X-Telegram-Bot-Api-Secret-Token`.
+3. O endpoint chama `handle_update(update)` em `app/hooks/main_hook_stub.py`.
+4. O hook roteia `callback_query` para `app/callbacks/router_stub.py`.
+5. O hook roteia `message.text` e `edited_message.text` para `app/commands/router.py`.
+6. Mensagens sem comando são ignoradas com segurança.
 
-```bash
-echo '${{ inputs.update_json }}' | python app/process_update.py
+Respostas esperadas:
+
+- método diferente de `POST`: `405`.
+- JSON inválido: `400`.
+- payload que não é objeto: `400`.
+- secret inválido: `403`.
+- sucesso: `200 {"ok": true, "result": ...}`.
+- erro interno do handler: `200 {"ok": false, "error": "internal_error"}`.
+
+O erro interno retorna `200` para evitar que o Telegram reenfileire o mesmo update indefinidamente. O erro é logado sem expor token.
+
+## Teste manual de update
+
+O workflow manual `.github/workflows/process-update.yml` recebe `update_json` e executa o hook localmente.
+
+Exemplo de JSON seguro para testar ignore de mensagem comum:
+
+```json
+{"update_id":1,"message":{"message_id":1,"text":"oi"}}
 ```
 
-O script `app/process_update.py` lê JSON via stdin e chama `handle_update(update)` de `app/hooks/main_hook_stub.py`, permitindo validar manualmente:
+Teste local equivalente:
 
-- comandos (`/status`, `/agenda`, etc.);
-- callbacks (`agenda_semana`, `aniversarios_semana`, etc.).
+```bash
+printf '%s' '{"update_id":1,"message":{"message_id":1,"text":"oi"}}' | python app/process_update.py
+```
 
-## Limitação para produção
+Para testar comando real, use um ambiente com `TOKEN_TOTODILE` e `ID_CENTRAL_TOTODILE`, porque o handler vai tentar responder no Telegram.
 
-Para botões/comandos funcionarem de forma real em produção, ainda será necessário um runtime contínuo com:
+## Updates aceitos
 
-- webhook (endpoint público), ou
-- polling (processo sempre ligado).
+Ao registrar o webhook, use:
 
-Até lá, o recebimento de updates segue apenas em modo de teste manual via GitHub Actions.
+```json
+["message", "edited_message", "callback_query"]
+```

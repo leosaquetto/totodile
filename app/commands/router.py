@@ -18,7 +18,10 @@ COMMANDS = {
 
 
 def _normalize_command(text):
-    raw = str(text or "").strip().split()[0]
+    parts = str(text or "").strip().split()
+    if not parts:
+        return ""
+    raw = parts[0]
     return raw.split("@")[0].lower()
 
 
@@ -30,8 +33,8 @@ def dispatch_command(text):
     command = _normalize_command(raw_text)
     handler = COMMANDS.get(command)
     if not handler:
-        agenda_commands.send_help()
-        return {"ok": False, "reason": "unknown_command", "command": command}
+        result = agenda_commands.send_help()
+        return {"ok": True, "reason": "unknown_command_help_sent", "command": command, "result": result}
 
-    handler()
-    return {"ok": True, "command": command}
+    result = handler()
+    return {"ok": True, "command": command, "result": result}

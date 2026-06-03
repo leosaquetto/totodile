@@ -29,7 +29,7 @@ Ainda não há roteamento para:
 
 ## O bot hoje processa o quê?
 ### Envio agendado
-Sim. O workflow `.github/workflows/bot.yml` executa `python app/main.py` diariamente em:
+Sim. O workflow `.github/workflows/bot.yml` executa `python -m app.main` diariamente em:
 - `0 10 * * *` (10:00 UTC, 07:00 em Brasília).
 
 No `app/main.py`, o fluxo atual chama:
