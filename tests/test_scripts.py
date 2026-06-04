@@ -2,7 +2,12 @@ import json
 import unittest
 from unittest.mock import patch
 
-from scripts import delete_telegram_webhook, get_telegram_webhook_info, set_telegram_webhook
+from scripts import (
+    delete_telegram_webhook,
+    get_telegram_webhook_info,
+    set_telegram_commands,
+    set_telegram_webhook,
+)
 
 
 class FakeResponse:
@@ -79,6 +84,25 @@ class WebhookScriptsTest(unittest.TestCase):
                     self.assertEqual(delete_telegram_webhook.main(), 0)
 
         self.assertEqual(post.call_args.kwargs["json"], {"drop_pending_updates": False})
+
+    def test_set_commands_payload(self):
+        with patch.dict("os.environ", {"TOKEN_TOTODILE": "token"}, clear=True):
+            with patch.object(
+                set_telegram_commands.requests,
+                "post",
+                return_value=FakeResponse({"ok": True}),
+            ) as post:
+                self.assertEqual(set_telegram_commands.main(), 0)
+
+        payload = post.call_args.kwargs["json"]
+        self.assertEqual(payload["commands"], set_telegram_commands.COMMANDS)
+        self.assertEqual(payload["commands"][0]["command"], "agenda")
+        self.assertEqual(payload["commands"][-1]["command"], "health")
+
+    def test_set_commands_non_object_json_returns_nonzero(self):
+        with patch.dict("os.environ", {"TOKEN_TOTODILE": "token"}, clear=True):
+            with patch.object(set_telegram_commands.requests, "post", return_value=FakeResponse()):
+                self.assertEqual(set_telegram_commands.main(), 1)
 
 
 if __name__ == "__main__":
