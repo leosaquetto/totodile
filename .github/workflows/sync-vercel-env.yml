@@ -53,3 +53,35 @@ jobs:
           python scripts/set_telegram_commands.py
           python scripts/set_telegram_webhook.py
           python scripts/get_telegram_webhook_info.py
+
+      - name: smoke Vercel webhook
+        env:
+          TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          payload = json.dumps({
+              "update_id": 1,
+              "message": {"message_id": 1, "text": "oi"},
+          }).encode("utf-8")
+          request = urllib.request.Request(
+              "https://totodile-lime.vercel.app/api/telegram_webhook",
+              data=payload,
+              method="POST",
+              headers={
+                  "Content-Type": "application/json",
+                  "X-Telegram-Bot-Api-Secret-Token": os.environ["TELEGRAM_WEBHOOK_SECRET"],
+              },
+          )
+          with urllib.request.urlopen(request, timeout=30) as response:
+              response_payload = json.loads(response.read().decode("utf-8"))
+
+          assert response.status == 200, response.status
+          assert response_payload["ok"] is True, response_payload
+          assert response_payload["result"]["reason"] == "ignored_non_command", response_payload
+          print(json.dumps(response_payload, ensure_ascii=False, sort_keys=True))
+          PY
