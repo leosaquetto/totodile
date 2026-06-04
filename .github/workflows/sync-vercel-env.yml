@@ -1,0 +1,38 @@
+name: sync-vercel-env
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: sync production envs and deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          TOKEN_TOTODILE: ${{ secrets.TOKEN_TOTODILE }}
+          ID_CENTRAL_TOTODILE: ${{ secrets.ID_CENTRAL_TOTODILE }}
+          TELEGRAM_WEBHOOK_SECRET: ${{ secrets.TELEGRAM_WEBHOOK_SECRET }}
+          VERCEL_GITHUB_TOKEN: ${{ secrets.VERCEL_GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          npx --yes vercel@54.1.0 link --yes --project totodile --scope leosaquettos-projects --token "$VERCEL_TOKEN"
+
+          for name in TOKEN_TOTODILE ID_CENTRAL_TOTODILE TELEGRAM_WEBHOOK_SECRET GITHUB_TOKEN; do
+            npx --yes vercel@54.1.0 env rm "$name" production --yes --token "$VERCEL_TOKEN" >/dev/null 2>&1 || true
+          done
+
+          npx --yes vercel@54.1.0 env add TOKEN_TOTODILE production --value "$TOKEN_TOTODILE" --yes --token "$VERCEL_TOKEN" >/dev/null
+          npx --yes vercel@54.1.0 env add ID_CENTRAL_TOTODILE production --value "$ID_CENTRAL_TOTODILE" --yes --token "$VERCEL_TOKEN" >/dev/null
+          npx --yes vercel@54.1.0 env add TELEGRAM_WEBHOOK_SECRET production --value "$TELEGRAM_WEBHOOK_SECRET" --yes --token "$VERCEL_TOKEN" >/dev/null
+          npx --yes vercel@54.1.0 env add GITHUB_TOKEN production --value "$VERCEL_GITHUB_TOKEN" --yes --token "$VERCEL_TOKEN" >/dev/null
+
+          npx --yes vercel@54.1.0 --prod --yes --token "$VERCEL_TOKEN"
