@@ -18,6 +18,8 @@ O endpoint é uma Python Function simples da Vercel, sem Flask/FastAPI.
 
 O estado em produção usa GitHub Contents API via `GITHUB_TOKEN`. Sem essa env, a função cai para arquivo local, o que só é adequado em desenvolvimento.
 
+`requirements.txt` inclui `tzdata` para garantir que `ZoneInfo("America/Sao_Paulo")` funcione mesmo em runtimes sem banco de fusos do sistema.
+
 ## Envs da Vercel
 
 Configure na Vercel:

@@ -51,7 +51,7 @@ def main():
         return 1
 
     _print_json(response_json)
-    return 0 if response_json.get("ok") is True else 1
+    return 0 if isinstance(response_json, dict) and response_json.get("ok") is True else 1
 
 
 if __name__ == "__main__":

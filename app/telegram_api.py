@@ -66,6 +66,12 @@ def _post(method, payload):
             f"payload={_safe_payload(payload)}"
         )
 
+    if not isinstance(response_json, dict) or response_json.get("ok") is not True:
+        raise RuntimeError(
+            f"Telegram {method} returned API error: status={response.status_code} "
+            f"response={_truncate(response_json)} payload={_safe_payload(payload)}"
+        )
+
     return response_json
 
 

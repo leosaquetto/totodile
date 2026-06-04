@@ -58,7 +58,10 @@ def _parse_date(value):
 
     iso = text.replace("Z", "+00:00")
     try:
-        return datetime.fromisoformat(iso).astimezone(TZ)
+        parsed = datetime.fromisoformat(iso)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=TZ)
+        return parsed.astimezone(TZ)
     except Exception:
         pass
 
@@ -117,10 +120,19 @@ def _time_line(dt, is_all_day=False):
 
 
 def _next_birthday_dt(dt, reference):
-    candidate = dt.replace(year=reference.year, hour=0, minute=0, second=0, microsecond=0)
+    candidate = _birthday_dt_for_year(dt, reference.year)
     if candidate.date() < reference.date():
-        candidate = candidate.replace(year=reference.year + 1)
+        candidate = _birthday_dt_for_year(dt, reference.year + 1)
     return candidate
+
+
+def _birthday_dt_for_year(dt, year):
+    try:
+        return dt.replace(year=year, hour=0, minute=0, second=0, microsecond=0)
+    except ValueError:
+        if dt.month == 2 and dt.day == 29:
+            return dt.replace(year=year, day=28, hour=0, minute=0, second=0, microsecond=0)
+        raise
 
 
 def _birthday_item(raw, reference):
@@ -372,7 +384,10 @@ def send_snoozed_agenda_reminders(reference=None):
     if _already_sent(state, sent_key):
         return {"ok": True, "sent": 0, "reason": "already_sent_today"}
 
-    send_daily_events(reference=reference, thread_id=THREADS["agenda"], show_empty=False)
+    result = send_daily_events(reference=reference, thread_id=THREADS["agenda"], show_empty=False)
+    if result is None:
+        return {"ok": True, "sent": 0, "reason": "no_events_for_today"}
+
     _mark_sent(state, sent_key, reference)
     _save_json(STATE_PATH, state, "🤖 enviar lembrete posterior da agenda")
     return {"ok": True, "sent": 1, "reason": "snooze_sent"}

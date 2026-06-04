@@ -1,3 +1,4 @@
+import hmac
 import json
 import logging
 import os
@@ -70,13 +71,19 @@ class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self._method_not_allowed()
 
+    def do_CONNECT(self):
+        self._method_not_allowed()
+
+    def do_TRACE(self):
+        self._method_not_allowed()
+
     def _validate_secret(self):
         expected_secret = os.getenv("TELEGRAM_WEBHOOK_SECRET")
         if not expected_secret:
             return None
 
         received_secret = self.headers.get("X-Telegram-Bot-Api-Secret-Token")
-        if received_secret != expected_secret:
+        if not received_secret or not hmac.compare_digest(received_secret, expected_secret):
             return HTTPStatus.FORBIDDEN, {"ok": False, "error": "invalid_secret"}
         return None
 

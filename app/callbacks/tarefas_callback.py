@@ -30,7 +30,7 @@ def handle(callback):
     message_id = msg.get("message_id")
     chat = msg.get("chat") if isinstance(msg.get("chat"), dict) else {}
     chat_id = chat.get("id") or GROUP_ID
-    if message_id:
+    if message_id and chat_id:
         edit_result = edit_message(
             chat_id,
             message_id,

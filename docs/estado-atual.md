@@ -42,4 +42,5 @@ Arquivos de dados principais:
 
 - A Vercel precisa das envs documentadas em `docs/deploy-vercel.md`.
 - O webhook real é `/api/telegram_webhook`.
+- `tzdata` garante o fuso `America/Sao_Paulo` em runtimes Python minimalistas.
 - Não há polling recorrente.

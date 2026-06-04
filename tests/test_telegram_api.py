@@ -16,6 +16,13 @@ class FakeResponse:
         return {"ok": True}
 
 
+class TelegramErrorResponse(FakeResponse):
+    text = '{"ok": false, "description": "bad request"}'
+
+    def json(self):
+        return {"ok": False, "description": "bad request"}
+
+
 class TelegramApiTest(unittest.TestCase):
     def test_send_message_omits_empty_thread_id(self):
         with patch.object(telegram_api, "BOT_TOKEN", "secret-token"):
@@ -57,6 +64,18 @@ class TelegramApiTest(unittest.TestCase):
                     telegram_api.send_message(None, "oi")
 
         post.assert_not_called()
+
+    def test_http_200_api_error_raises_with_safe_context(self):
+        with patch.object(telegram_api, "BOT_TOKEN", "secret-token"):
+            with patch("app.telegram_api.requests.post", return_value=TelegramErrorResponse()):
+                with self.assertRaises(RuntimeError) as error:
+                    telegram_api.send_message(123, "oi")
+
+        message = str(error.exception)
+        self.assertIn("status=200", message)
+        self.assertIn("bad request", message)
+        self.assertIn("payload=", message)
+        self.assertNotIn("secret-token", message)
 
 
 if __name__ == "__main__":
