@@ -31,6 +31,6 @@ jobs:
         env:
           TOKEN_TOTODILE: ${{ secrets.TOKEN_TOTODILE }}
           ID_CENTRAL_TOTODILE: ${{ secrets.ID_CENTRAL_TOTODILE }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
           UPDATE_JSON: ${{ inputs.update_json }}
         run: printf '%s' "$UPDATE_JSON" | python -m app.process_update

@@ -29,5 +29,5 @@ jobs:
         env:
           TOKEN_TOTODILE: ${{ secrets.TOKEN_TOTODILE }}
           ID_CENTRAL_TOTODILE: ${{ secrets.ID_CENTRAL_TOTODILE }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: python -m app.main
