@@ -8,6 +8,12 @@ O webhook real fica em:
 /api/telegram_webhook
 ```
 
+O endpoint público de saúde fica em:
+
+```text
+/api/health
+```
+
 Em produção:
 
 ```text
@@ -15,6 +21,8 @@ https://SEU-DOMINIO.vercel.app/api/telegram_webhook
 ```
 
 O endpoint é uma Python Function simples da Vercel, sem Flask/FastAPI.
+
+`GET /api/health` retorna apenas booleanos de configuração (`has_token`, `has_group_id`, `has_github_token`) e timestamp. Ele não expõe token, secret, group id ou payload do Telegram.
 
 O estado em produção usa GitHub Contents API via `GITHUB_TOKEN`. Sem essa env, a função cai para arquivo local, o que só é adequado em desenvolvimento.
 
@@ -85,3 +93,14 @@ TOKEN_TOTODILE=... python scripts/delete_telegram_webhook.py --drop-pending-upda
 - `bot.yml`: rotina diária às 07h de Brasília.
 - `process-update.yml`: debug manual de update JSON.
 - Webhook Vercel: comandos e botões em tempo real.
+
+## Smoke pós-deploy
+
+Depois de um deploy, valide:
+
+```bash
+curl -s https://SEU-DOMINIO.vercel.app/api/health
+TOKEN_TOTODILE=... python scripts/get_telegram_webhook_info.py
+```
+
+O `health` deve retornar `ok: true` e `getWebhookInfo` não deve mostrar `last_error_message`.

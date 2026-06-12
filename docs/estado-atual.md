@@ -8,6 +8,7 @@
 - `.github/workflows/totodile-snooze.yml` roda de hora em hora entre 08h e 19h BRT para lembretes adiados.
 - `.github/workflows/process-update.yml` processa um update JSON manual para debug.
 - `api/telegram_webhook.py` recebe comandos e callbacks em tempo real pela Vercel.
+- `api/health.py` expõe um health check público sem segredos para smoke pós-deploy.
 
 ## Entrada do Telegram
 
@@ -42,5 +43,6 @@ Arquivos de dados principais:
 
 - A Vercel precisa das envs documentadas em `docs/deploy-vercel.md`.
 - O webhook real é `/api/telegram_webhook`.
+- O health check público é `/api/health`.
 - `tzdata` garante o fuso `America/Sao_Paulo` em runtimes Python minimalistas.
 - Não há polling recorrente.

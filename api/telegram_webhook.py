@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import sys
+import time
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
@@ -12,6 +13,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 LOGGER = logging.getLogger(__name__)
+logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 MAX_BODY_BYTES = 1024 * 1024
 
 
@@ -25,10 +27,40 @@ def _handle_update(update):
     return handle_update(update)
 
 
+def _update_context(payload):
+    context = {
+        "update_id": payload.get("update_id") if isinstance(payload, dict) else None,
+        "update_type": None,
+        "command": None,
+        "callback_data": None,
+    }
+    if not isinstance(payload, dict):
+        return context
+
+    callback = payload.get("callback_query")
+    if isinstance(callback, dict):
+        context["update_type"] = "callback_query"
+        context["callback_data"] = callback.get("data")
+        return context
+
+    for key in ("message", "edited_message"):
+        message = payload.get(key)
+        if not isinstance(message, dict):
+            continue
+        context["update_type"] = key
+        text = message.get("text")
+        if isinstance(text, str) and text.strip().startswith("/"):
+            context["command"] = text.strip().split()[0].split("@")[0].lower()
+        return context
+
+    return context
+
+
 class handler(BaseHTTPRequestHandler):
     server_version = "TotodileTelegramWebhook/1.0"
 
     def do_POST(self):
+        started_at = time.perf_counter()
         secret_error = self._validate_secret()
         if secret_error:
             self._send_json(*secret_error)
@@ -47,10 +79,29 @@ class handler(BaseHTTPRequestHandler):
         try:
             result = _handle_update(payload)
         except Exception:
-            LOGGER.exception("telegram_webhook internal_error update_id=%s", payload.get("update_id"))
+            context = _update_context(payload)
+            LOGGER.exception(
+                "telegram_webhook internal_error update_id=%s update_type=%s command=%s callback_data=%s duration_ms=%s",
+                context["update_id"],
+                context["update_type"],
+                context["command"],
+                context["callback_data"],
+                int((time.perf_counter() - started_at) * 1000),
+            )
             self._send_json(HTTPStatus.OK, {"ok": False, "error": "internal_error"})
             return
 
+        context = _update_context(payload)
+        LOGGER.info(
+            "telegram_webhook result update_id=%s update_type=%s command=%s callback_data=%s ok=%s reason=%s duration_ms=%s",
+            context["update_id"],
+            context["update_type"],
+            context["command"],
+            context["callback_data"],
+            result.get("ok") if isinstance(result, dict) else None,
+            result.get("reason") if isinstance(result, dict) else None,
+            int((time.perf_counter() - started_at) * 1000),
+        )
         self._send_json(HTTPStatus.OK, {"ok": True, "result": result})
 
     def do_GET(self):

@@ -26,8 +26,16 @@ def _headers(token):
     }
 
 
-def _response_text(response):
+def _redact(value, token=None):
+    text = str(value or "")
+    if token:
+        text = text.replace(token, "<redacted>")
+    return text
+
+
+def _response_text(response, token=None):
     text = response.text or ""
+    text = _redact(text, token=token)
     if len(text) <= MAX_RESPONSE_TEXT:
         return text
     return f"{text[:MAX_RESPONSE_TEXT]}...<truncated>"
@@ -45,7 +53,7 @@ def _read_metadata(path, token):
     if response.status_code == 404:
         return None
     if not response.ok:
-        raise GithubContentError("read", path, response.status_code, _response_text(response))
+        raise GithubContentError("read", path, response.status_code, _response_text(response, token=token))
     return response.json()
 
 
@@ -65,12 +73,23 @@ def _encoded_content(content):
     return encoded
 
 
+def _decoded_content(metadata):
+    if not isinstance(metadata, dict) or not metadata.get("content"):
+        return None
+    try:
+        return json.loads(base64.b64decode(metadata["content"]).decode("utf-8"))
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+        return None
+
+
 def write_json(path, content, token, message="update json", retries=1):
     url = _content_url(path)
 
     for attempt in range(retries + 1):
         metadata = _read_metadata(path, token)
         sha = metadata.get("sha") if isinstance(metadata, dict) else None
+        if _decoded_content(metadata) == content:
+            return {"ok": True, "skipped": True, "reason": "unchanged", "path": path}
 
         payload = {
             "message": message,
@@ -85,7 +104,7 @@ def write_json(path, content, token, message="update json", retries=1):
         if response.status_code == 409 and attempt < retries:
             continue
         if not response.ok:
-            raise GithubContentError("write", path, response.status_code, _response_text(response))
+            raise GithubContentError("write", path, response.status_code, _response_text(response, token=token))
         return response.json()
 
     raise GithubContentError("write", path, 409, "conflict after retry")

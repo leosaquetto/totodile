@@ -24,5 +24,8 @@ jobs:
       - name: unit tests
         run: python -m unittest discover -s tests
 
+      - name: health endpoint smoke
+        run: python -m unittest tests.test_health -v
+
       - name: process update smoke
         run: printf '%s' '{"update_id":1,"message":{"message_id":1,"text":"oi"}}' | python -m app.process_update

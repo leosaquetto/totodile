@@ -71,15 +71,21 @@ class WebhookTest(unittest.TestCase):
     def test_valid_post_calls_handle_update(self):
         with patch.dict(os.environ, {"TELEGRAM_WEBHOOK_SECRET": "expected"}, clear=True):
             with patch("api.telegram_webhook._handle_update", return_value={"ok": True}) as handle_update:
-                status, payload = self._request(
-                    body=b'{"update_id": 1}',
-                    headers={"X-Telegram-Bot-Api-Secret-Token": "expected"},
-                )
+                with self.assertLogs("api.telegram_webhook", level="INFO") as logs:
+                    status, payload = self._request(
+                        body=b'{"update_id": 1, "message": {"text": "/health secret text"}}',
+                        headers={"X-Telegram-Bot-Api-Secret-Token": "expected"},
+                    )
 
         self.assertEqual(status, 200)
         self.assertTrue(payload["ok"])
         self.assertEqual(payload["result"], {"ok": True})
-        handle_update.assert_called_once_with({"update_id": 1})
+        handle_update.assert_called_once_with({"update_id": 1, "message": {"text": "/health secret text"}})
+        self.assertIn("update_id=1", logs.output[0])
+        self.assertIn("update_type=message", logs.output[0])
+        self.assertIn("command=/health", logs.output[0])
+        self.assertIn("duration_ms=", logs.output[0])
+        self.assertNotIn("secret text", logs.output[0])
 
     def test_internal_error_returns_200_to_avoid_telegram_retry_loop(self):
         with patch.dict(os.environ, {}, clear=True):

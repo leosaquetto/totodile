@@ -1,3 +1,5 @@
+import os
+
 from app.config import GROUP_ID, BOT_TOKEN
 from app.constants import THREADS
 from app.modules import lembretes
@@ -120,10 +122,14 @@ def send_debug_aniversarios():
 def send_health():
     now = lembretes._now()
     state = lembretes._load_state()
+    github_token = os.getenv("GITHUB_TOKEN")
     text = (
         "🧪 health\n\n"
-        f"token: {'ok' if BOT_TOKEN else 'ausente'}\n"
-        f"group_id: {'ok' if GROUP_ID else 'ausente'}\n"
+        "configuração:\n"
+        f"- token Telegram: {'ok' if BOT_TOKEN else 'ausente'}\n"
+        f"- grupo Telegram: {'ok' if GROUP_ID else 'ausente'}\n"
+        f"- GitHub storage: {'ok' if github_token else 'modo local'}\n\n"
+        "estado:\n"
         f"state.sent: {len(state.get('sent', {}))}\n"
         f"state.read: {len(state.get('read', {}))}\n"
         f"state.snoozed: {len(state.get('snoozed', {}))}\n"

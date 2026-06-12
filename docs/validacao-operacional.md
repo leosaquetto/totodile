@@ -27,10 +27,19 @@ Objetivo:
 
 Validar na URL pública da Vercel:
 
+- `GET /api/health` retorna `200` com `ok: true` e booleanos de configuração.
 - `GET /api/telegram_webhook` retorna `405`.
 - `POST` com JSON inválido retorna `400`.
 - `POST` com secret inválido retorna `403`.
 - `POST` com payload válido retorna JSON.
+
+## Checagem pós-deploy em 5 minutos
+
+1. Rode `totodile-smoke-check`.
+2. Abra `https://SEU-DOMINIO.vercel.app/api/health` e confirme `ok: true`.
+3. Execute `TOKEN_TOTODILE=... python scripts/get_telegram_webhook_info.py`.
+4. Confirme `pending_update_count` baixo e `last_error_message` vazio.
+5. Envie `/health` no Telegram e confirme a resposta no tópico geral.
 
 ## Telegram
 
