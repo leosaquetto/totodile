@@ -37,9 +37,12 @@ TOKEN_TOTODILE
 ID_CENTRAL_TOTODILE
 GITHUB_TOKEN
 TELEGRAM_WEBHOOK_SECRET
+TOTODILE_ALLOWED_CHATS
 ```
 
 `TELEGRAM_WEBHOOK_SECRET` é usado para validar o header `X-Telegram-Bot-Api-Secret-Token`. Se a env estiver definida e o header vier diferente, o webhook responde `403`.
+
+`TOTODILE_ALLOWED_CHATS` é uma lista de IDs de chat separados por vírgula (ex: `-1001234567890,987654321`). Se definida, apenas mensagens desses chats são processadas — qualquer outro remetente é ignorado silenciosamente. Se não definida, todos os chats são aceitos (comportamento antigo).
 
 ## Registrar webhook
 

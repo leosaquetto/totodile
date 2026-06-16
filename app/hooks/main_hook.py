@@ -1,3 +1,4 @@
+from app.config import ALLOWED_CHATS
 from app.callbacks.router import dispatch
 from app.commands.router import dispatch_command
 
@@ -8,6 +9,36 @@ def _message_from_update(update):
         if isinstance(value, dict):
             return key, value
     return None, {}
+
+
+def _extract_chat_id(update):
+    if not isinstance(update, dict):
+        return None
+
+    for key in ("message", "edited_message"):
+        msg = update.get(key)
+        if not isinstance(msg, dict):
+            continue
+        chat = msg.get("chat")
+        if isinstance(chat, dict) and chat.get("id"):
+            return chat["id"]
+
+    callback = update.get("callback_query")
+    if isinstance(callback, dict):
+        msg = callback.get("message")
+        if isinstance(msg, dict):
+            chat = msg.get("chat")
+            if isinstance(chat, dict) and chat.get("id"):
+                return chat["id"]
+
+    return None
+
+
+def _is_allowed(update):
+    if not ALLOWED_CHATS:
+        return True
+    chat_id = _extract_chat_id(update)
+    return chat_id is not None and chat_id in ALLOWED_CHATS
 
 
 def _chat_context(message):
@@ -25,6 +56,9 @@ def _chat_context(message):
 def handle_update(update):
     if not isinstance(update, dict):
         return {"ok": False, "reason": "invalid_update"}
+
+    if not _is_allowed(update):
+        return {"ok": False, "reason": "unauthorized_chat"}
 
     callback = update.get("callback_query")
     if isinstance(callback, dict):
