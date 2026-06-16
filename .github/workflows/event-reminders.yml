@@ -1,0 +1,35 @@
+name: totodile-event-reminders
+
+on:
+  workflow_dispatch:
+  schedule:
+    # a cada 10 minutos, das 09:00 às 02:50 UTC (06:00 às 23:50 BRT)
+    - cron: "*/10 9-23 * * *"
+    - cron: "*/10 0-2 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: setup python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: install deps
+        run: pip install -r requirements.txt
+
+      - name: run event reminders
+        env:
+          TOKEN_TOTODILE: ${{ secrets.TOKEN_TOTODILE }}
+          ID_CENTRAL_TOTODILE: ${{ secrets.ID_CENTRAL_TOTODILE }}
+          GITHUB_TOKEN: ${{ github.token }}
+          TOTODILE_EVENT_REMINDERS: ${{ vars.TOTODILE_EVENT_REMINDERS || '1h,1d' }}
+        run: python -m app.event_reminders

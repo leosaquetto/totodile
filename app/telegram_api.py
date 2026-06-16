@@ -117,6 +117,21 @@ def edit_message(chat_id, message_id, text, reply_markup=None, parse_mode=None):
     return _post("editMessageText", payload)
 
 
+def edit_message_reply_markup(chat_id, message_id, reply_markup):
+    if not chat_id:
+        raise RuntimeError("chat_id não configurado")
+    if not message_id:
+        raise RuntimeError("message_id não configurado")
+
+    payload = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "reply_markup": _json_reply_markup(reply_markup),
+    }
+
+    return _post("editMessageReplyMarkup", payload)
+
+
 def answer_callback_query(callback_query_id, text=None, show_alert=None, cache_time=None):
     if not callback_query_id:
         return {"ok": False, "reason": "missing_callback_query_id"}
