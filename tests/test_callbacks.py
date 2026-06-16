@@ -14,6 +14,7 @@ class CallbackTest(unittest.TestCase):
             ("agenda_hoje", agenda_callback),
             ("aniversarios_hoje", agenda_callback),
             ("rotina_tarefas_painel", agenda_callback),
+            ("menu_ajuda", agenda_callback),
         )
 
         for data, module in cases:

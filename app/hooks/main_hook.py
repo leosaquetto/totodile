@@ -10,6 +10,18 @@ def _message_from_update(update):
     return None, {}
 
 
+def _chat_context(message):
+    if not isinstance(message, dict):
+        return None
+    chat = message.get("chat") if isinstance(message.get("chat"), dict) else None
+    if not chat:
+        return None
+    return {
+        "chat_id": chat.get("id"),
+        "message_thread_id": message.get("message_thread_id"),
+    }
+
+
 def handle_update(update):
     if not isinstance(update, dict):
         return {"ok": False, "reason": "invalid_update"}
@@ -23,7 +35,7 @@ def handle_update(update):
     message_type, message = _message_from_update(update)
     text = message.get("text")
     if isinstance(text, str) and text.strip():
-        result = dispatch_command(text)
+        result = dispatch_command(text, message=message)
         result.setdefault("message_type", message_type)
         return result
 

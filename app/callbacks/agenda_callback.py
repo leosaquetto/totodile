@@ -105,6 +105,18 @@ def handle(callback):
         result = _send_rotina_panel(data)
         return {"ok": True, "type": "rotina_panel", "data": data, "result": result}
 
+    if data == "menu_ajuda":
+        _answer_safe(callback_id, "comandos disponíveis")
+        from app.commands.agenda_commands import send_help
+        send_help()
+        return {"ok": True, "type": "menu_help"}
+
+    if data == "menu_status":
+        _answer_safe(callback_id, "verificando status")
+        from app.commands.agenda_commands import send_status
+        send_status()
+        return {"ok": True, "type": "menu_status"}
+
     if data == "agenda_lembrar_depois":
         _answer_safe(callback_id, "vou lembrar depois")
         now = datetime.now().astimezone()

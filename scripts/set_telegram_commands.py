@@ -8,6 +8,8 @@ import requests
 
 TELEGRAM_API_BASE = "https://api.telegram.org"
 COMMANDS = [
+    {"command": "menu", "description": "abrir menu principal"},
+    {"command": "start", "description": "abrir menu principal"},
     {"command": "agenda", "description": "ver agenda de hoje"},
     {"command": "agenda_hoje", "description": "ver eventos de hoje"},
     {"command": "agenda_semana", "description": "ver eventos da semana"},

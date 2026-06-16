@@ -6,23 +6,33 @@ from app.modules import lembretes
 from app.telegram_api import send_message
 
 
-def send_agenda_hoje():
+def _chat_id(kwargs):
+    return kwargs.get("chat_id") or GROUP_ID
+
+
+def _thread_id(kwargs, thread_key):
+    if kwargs.get("thread_id"):
+        return kwargs["thread_id"]
+    return THREADS.get(thread_key)
+
+
+def send_agenda_hoje(**kwargs):
     return lembretes.send_daily_events()
 
 
-def send_agenda_semana():
+def send_agenda_semana(**kwargs):
     return lembretes.send_week_events()
 
 
-def send_aniversarios_hoje():
+def send_aniversarios_hoje(**kwargs):
     return lembretes.send_daily_birthdays()
 
 
-def send_aniversarios_semana():
+def send_aniversarios_semana(**kwargs):
     return lembretes.send_week_birthdays()
 
 
-def send_rotina_panel():
+def send_rotina_panel(**kwargs):
     text = "🐊 rotina\n\nuse os botões para acessar os módulos:"
     reply_markup = {
         "inline_keyboard": [
@@ -44,9 +54,40 @@ def send_rotina_panel():
     return send_message(GROUP_ID, text, thread_id=THREADS["general"], reply_markup=reply_markup)
 
 
-def send_help():
+def send_menu(**kwargs):
+    chat_id = _chat_id(kwargs)
+    text = "🐊 Totodile\n\nescolha uma opção:"
+    reply_markup = {
+        "inline_keyboard": [
+            [
+                {"text": "🗓️ agenda hoje", "callback_data": "agenda_hoje"},
+                {"text": "📅 agenda semana", "callback_data": "agenda_semana"},
+            ],
+            [
+                {"text": "🎈 aniversários hoje", "callback_data": "aniversarios_hoje"},
+                {"text": "🎈 aniversários semana", "callback_data": "aniversarios_semana"},
+            ],
+            [
+                {"text": "🏠 tarefas", "callback_data": "rotina_tarefas_painel"},
+                {"text": "💊 remédios", "callback_data": "rotina_remedios_painel"},
+                {"text": "🏋️ academia", "callback_data": "rotina_academia_painel"},
+            ],
+            [
+                {"text": "ℹ️ ajuda", "callback_data": "menu_ajuda"},
+                {"text": "🩺 status", "callback_data": "menu_status"},
+            ],
+        ]
+    }
+    return send_message(
+        chat_id, text, thread_id=kwargs.get("thread_id"), reply_markup=reply_markup
+    )
+
+
+def send_help(**kwargs):
+    chat_id = _chat_id(kwargs)
     text = (
         "🤖 comandos disponíveis\n\n"
+        "/menu\n"
         "/agenda\n"
         "/agenda_hoje\n"
         "/agenda_semana\n"
@@ -60,7 +101,7 @@ def send_help():
         "/debug_aniversarios\n"
         "/health"
     )
-    return send_message(GROUP_ID, text, thread_id=THREADS["general"])
+    return send_message(chat_id, text, thread_id=kwargs.get("thread_id"))
 
 
 def _next_event_line():
@@ -81,7 +122,8 @@ def _next_birthday_line():
     return f"{item['date']:%d/%m} — {item['title']}"
 
 
-def send_status():
+def send_status(**kwargs):
+    chat_id = _chat_id(kwargs)
     now = lembretes._now()
     state = lembretes._load_state()
     events = lembretes._events_between(now, 30)
@@ -94,10 +136,10 @@ def send_status():
         f"aniversários carregados (30 dias): {len(birthdays)}\n"
         f"read: {len(state.get('read', {}))} | snoozed: {len(state.get('snoozed', {}))}"
     )
-    return send_message(GROUP_ID, text, thread_id=THREADS["general"])
+    return send_message(chat_id, text, thread_id=kwargs.get("thread_id"))
 
 
-def send_debug_agenda():
+def send_debug_agenda(**kwargs):
     now = lembretes._now()
     events = lembretes._events_between(now, 30)
     text = (
@@ -108,7 +150,7 @@ def send_debug_agenda():
     return send_message(GROUP_ID, text, thread_id=THREADS["agenda"])
 
 
-def send_debug_aniversarios():
+def send_debug_aniversarios(**kwargs):
     now = lembretes._now()
     birthdays = lembretes._birthdays_between(now, 30)
     text = (
@@ -119,7 +161,7 @@ def send_debug_aniversarios():
     return send_message(GROUP_ID, text, thread_id=THREADS["aniversarios"])
 
 
-def send_health():
+def send_health(**kwargs):
     now = lembretes._now()
     state = lembretes._load_state()
     github_token = os.getenv("GITHUB_TOKEN")

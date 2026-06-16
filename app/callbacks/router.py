@@ -27,7 +27,7 @@ def dispatch(callback):
     if data.startswith("academia_"):
         return academia_callback.handle(callback)
 
-    if data.startswith("agenda_") or data.startswith("aniversarios_") or data.startswith("rotina_"):
+    if data.startswith("agenda_") or data.startswith("aniversarios_") or data.startswith("rotina_") or data.startswith("menu_"):
         return agenda_callback.handle(callback)
 
     _answer_unhandled(callback, "ação não reconhecida")
