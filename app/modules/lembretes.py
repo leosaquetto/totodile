@@ -338,6 +338,59 @@ def render_week_events(reference=None):
     return "\n".join(lines)
 
 
+MONTH_LOOKAHEAD_DAYS = 30
+
+
+def render_period_birthdays(reference, days):
+    reference = reference or _now()
+    birthdays = _birthdays_between(reference, days)
+    if not birthdays:
+        return f"🎈 aniversários nos próximos {days} dias\n\nnenhum aniversário nesse período."
+    label = f"nos próximos {days} dias" if days != MONTH_LOOKAHEAD_DAYS else "do mês"
+    lines = [f"🎈 aniversários {label}", ""]
+    for item in birthdays:
+        lines.append(f"• {_date_line(item['date'], include_year=False)} — {item['title']}" + (f" ({item['age']} anos)" if item.get("age") else ""))
+    return "\n".join(lines)
+
+
+def render_period_events(reference, days):
+    reference = reference or _now()
+    events = _events_between(reference, days)
+    if not events:
+        return f"🗓️ eventos nos próximos {days} dias\n\nnenhum compromisso nesse período."
+    label = f"nos próximos {days} dias" if days != MONTH_LOOKAHEAD_DAYS else "do mês"
+    lines = [f"🗓️ eventos {label}", ""]
+    for item in events:
+        lines.append(f"• {_date_line(item['date'], include_year=False)} · {_time_line(item['date'], item.get('all_day'))} — {item['title']}")
+    return "\n".join(lines)
+
+
+def render_month_birthdays(reference=None):
+    return render_period_birthdays(reference or _now(), MONTH_LOOKAHEAD_DAYS)
+
+
+def render_month_events(reference=None):
+    return render_period_events(reference or _now(), MONTH_LOOKAHEAD_DAYS)
+
+
+def send_period_birthdays(reference=None, days=MONTH_LOOKAHEAD_DAYS):
+    reference = reference or _now()
+    text = render_period_birthdays(reference, days)
+    return send_message(GROUP_ID, text, thread_id=THREADS["aniversarios"])
+
+
+def send_period_events(reference=None, days=MONTH_LOOKAHEAD_DAYS):
+    reference = reference or _now()
+    text = render_period_events(reference, days)
+    return send_message(GROUP_ID, text, thread_id=THREADS["agenda"])
+
+
+def send_month_birthdays(reference=None):
+    return send_period_birthdays(reference, MONTH_LOOKAHEAD_DAYS)
+
+
+def send_month_events(reference=None):
+    return send_period_events(reference, MONTH_LOOKAHEAD_DAYS)
 
 
 def send_daily_birthdays(reference=None, thread_id=None, reply_markup=None, show_empty=True):
@@ -409,7 +462,10 @@ def send_due_reminders():
             reply_markup={
                 "inline_keyboard": [[
                     {"text": "✅ li aniversários", "callback_data": "aniversarios_lidos"},
-                    {"text": "🎈 ver semana", "callback_data": "aniversarios_semana"}
+                    {"text": "🎈 ver semana", "callback_data": "aniversarios_semana"},
+                    {"text": "🎈 ver mês", "callback_data": "aniversarios_mes"},
+                ], [
+                    {"text": "📅 escolher período", "callback_data": "aniversarios_periodo"},
                 ]]
             },
             show_empty=False
@@ -426,9 +482,11 @@ def send_due_reminders():
             reply_markup={
                 "inline_keyboard": [[
                     {"text": "✅ li agenda", "callback_data": "agenda_lida"},
-                    {"text": "📅 ver semana", "callback_data": "agenda_semana"}
+                    {"text": "📅 ver semana", "callback_data": "agenda_semana"},
+                    {"text": "📅 ver mês", "callback_data": "agenda_mes"},
                 ], [
-                    {"text": "🔁 lembrar depois", "callback_data": "agenda_lembrar_depois"}
+                    {"text": "📅 escolher período", "callback_data": "agenda_periodo"},
+                    {"text": "🔁 lembrar depois", "callback_data": "agenda_lembrar_depois"},
                 ]]
             },
             show_empty=False

@@ -117,7 +117,7 @@ def edit_message(chat_id, message_id, text, reply_markup=None, parse_mode=None):
     return _post("editMessageText", payload)
 
 
-def edit_message_reply_markup(chat_id, message_id, reply_markup):
+def edit_message_reply_markup(chat_id, message_id, reply_markup, thread_id=None):
     if not chat_id:
         raise RuntimeError("chat_id não configurado")
     if not message_id:
@@ -128,6 +128,8 @@ def edit_message_reply_markup(chat_id, message_id, reply_markup):
         "message_id": message_id,
         "reply_markup": _json_reply_markup(reply_markup),
     }
+    if thread_id:
+        payload["message_thread_id"] = thread_id
 
     return _post("editMessageReplyMarkup", payload)
 

@@ -18,9 +18,10 @@ def _edit_buttons_safe(callback, reply_markup):
     chat = message.get("chat")
     chat_id = chat.get("id") if isinstance(chat, dict) else None
     message_id = message.get("message_id")
+    thread_id = message.get("message_thread_id")
     if not chat_id or not message_id:
         return None
-    return edit_message_reply_markup(chat_id, message_id, reply_markup)
+    return edit_message_reply_markup(chat_id, message_id, reply_markup, thread_id=thread_id)
 
 
 def _mark_read_flag(state, key):
@@ -60,7 +61,10 @@ def handle(callback):
         _answer_safe(callback_id, "agenda marcada como lida")
         _edit_buttons_safe(callback, {
             "inline_keyboard": [[
-                {"text": "📅 ver semana", "callback_data": "agenda_semana"}
+                {"text": "📅 ver semana", "callback_data": "agenda_semana"},
+                {"text": "📅 ver mês", "callback_data": "agenda_mes"},
+            ], [
+                {"text": "📅 escolher período", "callback_data": "agenda_periodo"},
             ]]
         })
         state = lembretes._load_state()
@@ -72,7 +76,10 @@ def handle(callback):
         _answer_safe(callback_id, "aniversários marcados como lidos")
         _edit_buttons_safe(callback, {
             "inline_keyboard": [[
-                {"text": "🎈 ver semana", "callback_data": "aniversarios_semana"}
+                {"text": "🎈 ver semana", "callback_data": "aniversarios_semana"},
+                {"text": "🎈 ver mês", "callback_data": "aniversarios_mes"},
+            ], [
+                {"text": "🎈 escolher período", "callback_data": "aniversarios_periodo"},
             ]]
         })
         state = lembretes._load_state()
@@ -99,6 +106,75 @@ def handle(callback):
         _answer_safe(callback_id)
         lembretes.send_week_birthdays()
         return {"ok": True, "type": "aniversarios_week"}
+
+    if data == "agenda_mes":
+        _answer_safe(callback_id)
+        lembretes.send_month_events()
+        return {"ok": True, "type": "agenda_month"}
+
+    if data == "aniversarios_mes":
+        _answer_safe(callback_id)
+        lembretes.send_month_birthdays()
+        return {"ok": True, "type": "aniversarios_month"}
+
+    if data == "agenda_periodo":
+        _answer_safe(callback_id)
+        lembretes.send_message(
+            lembretes.GROUP_ID,
+            "📅 quantos dias pra frente você quer ver?",
+            thread_id=lembretes.THREADS["agenda"],
+            reply_markup={
+                "inline_keyboard": [[
+                    {"text": "7 dias", "callback_data": "agenda_periodo_7"},
+                    {"text": "15 dias", "callback_data": "agenda_periodo_15"},
+                ], [
+                    {"text": "30 dias", "callback_data": "agenda_periodo_30"},
+                    {"text": "60 dias", "callback_data": "agenda_periodo_60"},
+                ], [
+                    {"text": "✖️ fechar", "callback_data": "agenda_fechar"},
+                ]]
+            }
+        )
+        return {"ok": True, "type": "agenda_period_prompt"}
+
+    if data == "aniversarios_periodo":
+        _answer_safe(callback_id)
+        lembretes.send_message(
+            lembretes.GROUP_ID,
+            "🎈 quantos dias pra frente você quer ver?",
+            thread_id=lembretes.THREADS["aniversarios"],
+            reply_markup={
+                "inline_keyboard": [[
+                    {"text": "7 dias", "callback_data": "aniversarios_periodo_7"},
+                    {"text": "15 dias", "callback_data": "aniversarios_periodo_15"},
+                ], [
+                    {"text": "30 dias", "callback_data": "aniversarios_periodo_30"},
+                    {"text": "60 dias", "callback_data": "aniversarios_periodo_60"},
+                ], [
+                    {"text": "✖️ fechar", "callback_data": "agenda_fechar"},
+                ]]
+            }
+        )
+        return {"ok": True, "type": "aniversarios_period_prompt"}
+
+    if data.startswith("agenda_periodo_"):
+        _answer_safe(callback_id)
+        days_str = data.replace("agenda_periodo_", "")
+        if days_str.isdigit():
+            lembretes.send_period_events(days=int(days_str))
+        return {"ok": True, "type": "agenda_period"}
+
+    if data.startswith("aniversarios_periodo_"):
+        _answer_safe(callback_id)
+        days_str = data.replace("aniversarios_periodo_", "")
+        if days_str.isdigit():
+            lembretes.send_period_birthdays(days=int(days_str))
+        return {"ok": True, "type": "aniversarios_period"}
+
+    if data == "agenda_fechar":
+        _answer_safe(callback_id, "fechado")
+        _edit_buttons_safe(callback, {"inline_keyboard": []})
+        return {"ok": True, "type": "agenda_close"}
 
     if data in {"rotina_tarefas_painel", "rotina_remedios_painel", "rotina_academia_painel"}:
         _answer_safe(callback_id, "painel aberto")
