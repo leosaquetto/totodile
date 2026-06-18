@@ -64,24 +64,37 @@ def send_rotina_panel(**kwargs):
 
 def send_menu(**kwargs):
     chat_id = _chat_id(kwargs)
-    text = '🐊 Totodile\n\nescolha uma opção:'
+    text = '🐊 **Totodile**\n\nescolha uma categoria:'
     reply_markup = {
         "inline_keyboard": [
+            # 📅 AGENDA
+            [
+                {"text": "📅 Agenda:"},
+            ],
             [
                 {"text": "🗓️ hoje", "callback_data": "agenda_hoje"},
-                {"text": "📅 semana", "callback_data": "agenda_semana"},
+                {"text": "📆 semana", "callback_data": "agenda_semana"},
                 {"text": "📆 mês", "callback_data": "agenda_mes"},
             ],
+            # 🎈 ANIVERSÁRIOS
             [
-                {"text": "🎈 aniv. hoje", "callback_data": "aniversarios_hoje"},
-                {"text": "🎈 aniv. semana", "callback_data": "aniversarios_semana"},
-                {"text": "🎈 aniv. mês", "callback_data": "aniversarios_mes"},
+                {"text": "🎈 Aniversários:"},
             ],
             [
-                {"text": "🏠 tarefas", "callback_data": "rotina_tarefas_painel"},
+                {"text": "🎂 hoje", "callback_data": "aniversarios_hoje"},
+                {"text": "🎂 semana", "callback_data": "aniversarios_semana"},
+                {"text": "🎂 mês", "callback_data": "aniversarios_mes"},
+            ],
+            # 🏠 ROTINA
+            [
+                {"text": "🏠 Rotina:"},
+            ],
+            [
+                {"text": "🧹 tarefas", "callback_data": "rotina_tarefas_painel"},
                 {"text": "💊 remédios", "callback_data": "rotina_remedios_painel"},
                 {"text": "🏋️ academia", "callback_data": "rotina_academia_painel"},
             ],
+            # ⚙️ DEMAIS
             [
                 {"text": "ℹ️ ajuda", "callback_data": "menu_ajuda"},
                 {"text": "🩺 status", "callback_data": "menu_status"},
@@ -96,16 +109,23 @@ def send_menu(**kwargs):
 def send_help(**kwargs):
     chat_id = _chat_id(kwargs)
     text = "\n".join([
-        "🤖 comandos disponíveis",
+        "🐊 **Totodile — comandos disponíveis**",
         "",
-        "/menu — menu principal",
-        "/agenda — eventos de hoje",
-        "/agenda_semana — eventos da semana",
-        "/agenda_mes — eventos do mês",
-        "/aniversarios — aniversários de hoje",
-        "/aniversarios_semana — aniversários da semana",
-        "/aniversarios_mes — aniversários do mês",
-        "/rotina — painel de tarefas, remédios, academia",
+        "**📅 Agenda**",
+        "/agenda ou /agenda_hoje — eventos de hoje",
+        "/agenda_semana — próximos 7 dias",
+        "/agenda_mes — visão do mês",
+        "",
+        "**🎈 Aniversários**",
+        "/aniversarios ou /aniversarios_hoje — aniversariantes hoje",
+        "/aniversarios_semana — próximos 7 dias",
+        "/aniversarios_mes — visão do mês",
+        "",
+        "**🏠 Rotina**",
+        "/rotina — painel de tarefas, remédios e academia",
+        "",
+        "**⚙️ Geral**",
+        "/menu — menu principal (botões categorizados)",
         "/ajuda — esta lista",
         "/status — status do bot",
     ])
