@@ -32,6 +32,14 @@ def send_aniversarios_semana(**kwargs):
     return lembretes.send_week_birthdays()
 
 
+def send_agenda_mes(**kwargs):
+    return lembretes.send_month_events()
+
+
+def send_aniversarios_mes(**kwargs):
+    return lembretes.send_month_birthdays()
+
+
 def send_rotina_panel(**kwargs):
     text = "🐊 rotina\n\nuse os botões para acessar os módulos:"
     reply_markup = {
@@ -56,16 +64,18 @@ def send_rotina_panel(**kwargs):
 
 def send_menu(**kwargs):
     chat_id = _chat_id(kwargs)
-    text = "🐊 Totodile\n\nescolha uma opção:"
+    text = '🐊 Totodile\n\nescolha uma opção:'
     reply_markup = {
         "inline_keyboard": [
             [
-                {"text": "🗓️ agenda hoje", "callback_data": "agenda_hoje"},
-                {"text": "📅 agenda semana", "callback_data": "agenda_semana"},
+                {"text": "🗓️ hoje", "callback_data": "agenda_hoje"},
+                {"text": "📅 semana", "callback_data": "agenda_semana"},
+                {"text": "📆 mês", "callback_data": "agenda_mes"},
             ],
             [
-                {"text": "🎈 aniversários hoje", "callback_data": "aniversarios_hoje"},
-                {"text": "🎈 aniversários semana", "callback_data": "aniversarios_semana"},
+                {"text": "🎈 aniv. hoje", "callback_data": "aniversarios_hoje"},
+                {"text": "🎈 aniv. semana", "callback_data": "aniversarios_semana"},
+                {"text": "🎈 aniv. mês", "callback_data": "aniversarios_mes"},
             ],
             [
                 {"text": "🏠 tarefas", "callback_data": "rotina_tarefas_painel"},
@@ -85,22 +95,20 @@ def send_menu(**kwargs):
 
 def send_help(**kwargs):
     chat_id = _chat_id(kwargs)
-    text = (
-        "🤖 comandos disponíveis\n\n"
-        "/menu\n"
-        "/agenda\n"
-        "/agenda_hoje\n"
-        "/agenda_semana\n"
-        "/aniversarios\n"
-        "/aniversarios_hoje\n"
-        "/aniversarios_semana\n"
-        "/rotina\n"
-        "/ajuda\n"
-        "/status\n"
-        "/debug_agenda\n"
-        "/debug_aniversarios\n"
-        "/health"
-    )
+    text = "\n".join([
+        "🤖 comandos disponíveis",
+        "",
+        "/menu — menu principal",
+        "/agenda — eventos de hoje",
+        "/agenda_semana — eventos da semana",
+        "/agenda_mes — eventos do mês",
+        "/aniversarios — aniversários de hoje",
+        "/aniversarios_semana — aniversários da semana",
+        "/aniversarios_mes — aniversários do mês",
+        "/rotina — painel de tarefas, remédios, academia",
+        "/ajuda — esta lista",
+        "/status — status do bot",
+    ])
     return send_message(chat_id, text, thread_id=kwargs.get("thread_id"))
 
 

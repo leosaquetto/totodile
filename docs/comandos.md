@@ -27,12 +27,14 @@ health - checar saúde do bot
 - `/agenda_semana`: envia agenda da semana no tópico `agenda`.
 - `/aniversarios` e `/aniversarios_hoje`: envia aniversários de hoje no tópico `aniversarios`.
 - `/aniversarios_semana`: envia aniversários da semana no tópico `aniversarios`.
+- `/agenda_mes`: envia eventos do mês no tópico `agenda`.
+- `/aniversarios_mes`: envia aniversários do mês no tópico `aniversarios`.
 - `/rotina`: envia painel de rotina no tópico geral.
 - `/ajuda`: lista comandos disponíveis no tópico geral.
 - `/status`: mostra status resumido no tópico geral.
 - `/debug_agenda`: mostra diagnóstico de agenda no tópico `agenda`.
 - `/debug_aniversarios`: mostra diagnóstico de aniversários no tópico `aniversarios`.
-- `/health`: checa saúde básica do bot no tópico geral.
+- `/health`: endpoint de saúde do bot.
 
 `THREADS["general"]` é `None`, então mensagens gerais não enviam `message_thread_id`.
 
